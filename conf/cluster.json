@@ -1,0 +1,160 @@
+{
+    "__default__" :
+    {
+        "job-name" : "{rule}.{wildcards.aliquot_barcode}",
+        "mail-type" : "FAIL",
+        "mail-user" : "floris.barthel@jax.org",
+        "nodes" : 1,
+        "cpus-per-task" : 2,
+        "time" : "72:00:00",
+        "mem" : "12g",
+        "partition" : "compute",
+        "qos" : "batch",
+        "output" : "logs/slurm/{rule}.{wildcards.aliquot_barcode}.out",
+        "error" : "logs/slurm/{rule}.{wildcards.aliquot_barcode}.err"
+    },
+    "cutadapt" :
+    {
+        "cpus-per-task" : 2,
+        "mem" : "12g",
+        "time" : "2:00:00"
+    },
+    "fq2ubam" :
+    {
+        "cpus-per-task" : 2,
+        "mem" : "12g",
+        "time" : "6:00:00"
+    },
+    "fastqc" :
+    {
+        "cpus-per-task" : 2,
+        "mem" : "12g",
+        "time" : "72:00:00"
+    },
+    "clipreads" :
+    {
+        "cpus-per-task" : 2,
+        "mem" : "12g",
+        "time" : "6:00:00"
+    },
+    "markadapters" :
+    {
+        "cpus-per-task" : 2,
+        "mem" : "12g",
+        "time" : "6:00:00"
+    },
+    "samtofastq_bwa_mergebamalignment" :
+    {
+        "cpus-per-task" : 12,
+        "time" : "8:00:00",
+        "mem" : "72g"
+    },
+    "markduplicates" :
+    {
+        "cpus-per-task" : 6,
+        "time" : "12:00:00",
+        "mem" : "24g"
+    },
+    "baserecalibrator" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "72:00:00",
+        "mem" : "12g"
+    },
+    "applybqsr" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "72:00:00",
+        "mem" : "12g"
+    },
+    "wgsmetrics" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g"
+    },
+    "validatebam" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "72:00:00",
+        "mem" : "12g"
+    },
+    "callpeaks" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g"
+    },
+    "telseq" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g"
+    },
+    "bedtools_count" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g"
+    },
+    "bedtools_gc" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g"
+    },
+    "bedtools_count_rna" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g",
+        "job-name" : "{rule}.{wildcards.sraid}",
+        "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
+        "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
+    },
+    "bedtools_gc_rna" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g",
+        "job-name" : "{rule}.{wildcards.sraid}",
+        "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
+        "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
+    },
+    "bedtools_gencode_rna" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g",
+        "job-name" : "{rule}.{wildcards.sraid}",
+        "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
+        "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
+    },
+    "prefetch" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g",
+        "job-name" : "{rule}.{wildcards.sraid}",
+        "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
+        "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
+    },
+    "samdump" :
+    {
+        "cpus-per-task" : 2,
+        "time" : "2:00:00",
+        "mem" : "12g",
+        "job-name" : "{rule}.{wildcards.sraid}",
+        "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
+        "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
+    },
+    "multiqc" :
+    {
+        "job-name" : "{rule}",
+        "output" : "logs/drmaa/{rule}.out",
+        "error" : "logs/drmaa/{rule}.err",
+        "cpus-per-task" : 2,
+        "time" : "72:00:00",
+        "mem" : "12g"
+    }
+}
