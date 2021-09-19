@@ -1,7 +1,7 @@
 #!/bin/bash
-WORKDIR="/projects/barthf/Telomere-C/Telo-C"
+WORKDIR="~/Telomere-C"
 
-SMKDIR="/projects/barthf/Telomere-C/Telo-C"
+SMKDIR="~/Telomere-C"
 export SMKDIR
 
 CLUSTRCONF="conf/cluster.json"

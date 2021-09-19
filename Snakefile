@@ -18,7 +18,14 @@ adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
 ## The adapters are anchored (indicated by the ^ in the fasta file)
 ## This means that the adapters are fixed to the 3' end
 
+##TODO list
+## 1. change to relatvive path and test the script if it is working
+## 2. pull 'file path' from a userConfig file
+## 3. pull patameters from userConfig
+
+
 rule cutadapt:
+### TODO pell value from config file
     input:
         R1 = "data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz",
         R2 = "data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz",
@@ -52,6 +59,7 @@ rule fq2ubam:
     output:
         "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam"
     params:
+### TODO pull value from congfig file
         RGID = "{adapt}.G5B3N.1",
         RGPL = "ILLUMINA",
         RGPU = "G5B3NM02838.1",
@@ -106,6 +114,7 @@ rule markadapters:
 rule clipreads:
     input:
         ubam = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.{adapt}.markadapters.bam",
+### TODO pull value from configfile
         clipseq = "data/ref/telomerec.clipreads.fasta"
     output:
         ubam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
@@ -129,7 +138,8 @@ rule clipreads:
 rule samtofastq_bwa_mergebamalignment:
     input:
         bam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
-        ref = "/projects/verhaak-lab/verhaak_ref/gatk-legacy-bundles/b37/human_g1k_v37_decoy.fasta"
+### TODO pull value from configfile
+        ref = "data/ref/human_g1k_v37_decoy.fasta"
     output:
         bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.{adapt}.aln.bam",
         bai = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.{adapt}.aln.bai"
@@ -268,7 +278,8 @@ rule bedtools_count:
 rule bedtools_gc:
     input:
         bed = "results/align/bedtools/{aliquot_barcode}.counts.bed",
-        fa = "/projects/verhaak-lab/verhaak_ref/gatk-legacy-bundles/b37/human_g1k_v37_decoy.fasta"
+### TODO pull value from configfile
+        fa = "data/ref/human_g1k_v37_decoy.fasta" 
     output:
         "results/align/bedtools/{aliquot_barcode}.counts.gc.bed"
     log:
@@ -288,10 +299,11 @@ rule bedtools_gc:
 ## For this step to work, one needs to install the SRA toolkit (sra-tools on conda)
 ## We also need to setup the SRA environment and load it with keyfiles
 ## See https://ncbi.github.io/sra-tools/install_config.html for instructions
-## The output base path needs to match the directory in SRA config (vbd-config -i)
+## The output base path needs to match the directory in SRA config (vdb-config -i)
 rule prefetch:
     output:
-        "/fastscratch/barthf/ncbi/public/sra/{sraid}.sra"
+### TODO change to relative path
+        "~/ncbi/public/sra/{sraid}.sra"
     params:
         sraid = "SRR8616019"
     log:
@@ -307,7 +319,8 @@ rule prefetch:
 ## SAM-dump (eg. convert SRR into SAM) downloaded file
 rule samdump:
     input:
-        srr = "/fastscratch/barthf/ncbi/public/sra/{sraid}.sra"
+### TODO change to relative path
+        srr = "~/ncbi/public/sra/{sraid}.sra"
     output:
         sam = temp("results/align/samdump/{sraid}.sam"),
         bam = "results/align/samdump/{sraid}.bam",
@@ -329,6 +342,7 @@ rule samdump:
 rule bedtools_count_rna:
     input:
         bam = "results/align/samdump/{sraid}.bam",
+### TODO pull value from configfile
         windows = "data/ref/b37.100Kb.windows.bed"
     output:
         "results/align/bedtools/{sraid}.counts.rna.bed"
@@ -347,7 +361,8 @@ rule bedtools_count_rna:
 rule bedtools_gc_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.bed",
-        fa = "/projects/verhaak-lab/verhaak_ref/gatk-legacy-bundles/b37/human_g1k_v37_decoy.fasta"
+### TODO pull value from configfile
+        fa = "data/ref/human_g1k_v37_decoy.fasta"
     output:
         "results/align/bedtools/{sraid}.counts.rna.gc.bed"
     log:
@@ -365,7 +380,8 @@ rule bedtools_gc_rna:
 rule bedtools_gencode_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.gc.bed",
-        gtf = "/projects/verhaak-lab/verhaak_ref/funcotator/funcotator_dataSources.v1.6.20190124s/gencode/gencode.v19.flattened.captured.sorted.bed"
+### TODO pull value from configfile
+        gtf = "data/ref/gencode.v19.flattened.captured.sorted.bed"
     output:
         "results/align/bedtools/{sraid}.counts.rna.gc.gencode.bed"
     log:
@@ -378,7 +394,7 @@ rule bedtools_gencode_rna:
             -files {input.gtf} \
             > {output} \
             2> {log}"""
-
+### TODO can we generate these by a script
 rule all:
     input: "results/align/macs2/A2780-GT20/A2780-GT20_peaks.xls", "results/align/telseq/A2780-GT20.telseq.txt", "results/align/bedtools/A2780-GT20.counts.gc.bed", "results/align/samdump/SRR8616019.bam", "results/align/bedtools/SRR8616019.counts.rna.gc.bed", "results/align/bedtools/SRR8616019.counts.rna.gc.gencode.bed"
 
