@@ -1,7 +1,7 @@
-sandbox/
-Snakefile_bk/
-backup/
-results/
-data/ref/*
-data/fastq/*
-~/temp/
+sandbox/**
+Snakefile_bk/**
+backup/**
+results/**
+data/ref/**
+data/fastq/**
+~/temp/**

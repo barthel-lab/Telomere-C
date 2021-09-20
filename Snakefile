@@ -9,10 +9,14 @@
 
 
 ## Define adapter combinations
-import itertools
-adapters = ['FtFb','FtRb','RtFb','RtRb','unknown']
-adapters_comb = list(itertools.product(adapters, repeat=2))
-adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
+#import itertools
+#adapters = ['FtFb','FtRb','RtFb','RtRb','unknown']
+#adapters_comb = list(itertools.product(adapters, repeat=2))
+#adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
+
+
+# For testing
+adapters_comb_str = ['FtFb-FtFb','FtFb-FtRb']
 
 ## 3' adapters are assumed using -g and -G for read1 and read2, respectively
 ## The adapters are anchored (indicated by the ^ in the fasta file)
@@ -86,7 +90,8 @@ rule fq2ubam:
             --LIBRARY_NAME=\"{params.RGLB}\" \
             --SEQUENCING_CENTER=\"{params.RGCN}\" \
             --SORT_ORDER=queryname \
-            --TMP_DIR=/fastscratch/barthf/temp \
+#TODO pull value from config
+            --TMP_DIR=~/Temp \
             > {log} 2>&1"""
 
 rule markadapters:
@@ -104,12 +109,13 @@ rule markadapters:
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
     shell:
-        "gatk --java-options -Xmx6g MarkIlluminaAdapters \
+        """gatk --java-options -Xmx6g MarkIlluminaAdapters \
             --INPUT={input} \
             --OUTPUT={output.bam} \
             --METRICS={output.metric} \
-            --TMP_DIR=/fastscratch/barthf/temp \
-            > {log} 2>&1"
+#TODO pull value from config
+            --TMP_DIR=~/Temp \
+            > {log} 2>&1"""
 
 rule clipreads:
     input:
@@ -128,17 +134,19 @@ rule clipreads:
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
     shell:
-        "gatk --java-options -Xmx6g ClipReads \
+        """gatk --java-options -Xmx6g ClipReads \
             -I {input.ubam} \
             -O {output.ubam} \
             --clip-sequences-file {input.clipseq} \
             --output-statistics {output.stats} \
-            > {log} 2>&1"
+            > {log} 2>&1"""
 
+### TOFIX
 rule samtofastq_bwa_mergebamalignment:
     input:
         bam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
 ### TODO pull value from configfile
+# must chekc if human_g1k_v37_decoy.fasta and index were exist. If not run: bwa index
         ref = "data/ref/human_g1k_v37_decoy.fasta"
     output:
         bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.{adapt}.aln.bam",
@@ -156,14 +164,15 @@ rule samtofastq_bwa_mergebamalignment:
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
     shell:
-        "gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.compression_level=1 -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx128m' SamToFastq \
+        """gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.compression_level=1 -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx128m' SamToFastq \
             --INPUT={input.bam} \
             --FASTQ=/dev/stdout \
             --CLIPPING_ATTRIBUTE=XT \
             --CLIPPING_ACTION=2 \
             --INTERLEAVE=true \
-            --NON_PF=true \
-            --TMP_DIR=/fastscratch/barthf/temp | \
+            -NON_PF=true \
+# TODO pull value from config
+            --TMP_DIR=~/Temp | \
          bwa mem -M -t {threads} -p {input.ref} /dev/stdin | \
          gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.use_async_io=true -Dsamjdk.compression_level=1 -XX:+UseStringCache -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx5000m' MergeBamAlignment \
             --ALIGNED_BAM=/dev/stdin \
@@ -178,9 +187,11 @@ rule samtofastq_bwa_mergebamalignment:
             --MAX_INSERTIONS_OR_DELETIONS=-1 \
             --PRIMARY_ALIGNMENT_STRATEGY=MostDistant \
             --ATTRIBUTES_TO_RETAIN=XS \
-            --TMP_DIR=/fastscratch/barthf/temp \
-            > {log} 2>&1"
+#TODP pull value from config
+            --TMP_DIR=~/Temp \
+            > {log} 2>&1"""
 
+### TOFIX
 rule markduplicates:
     input:
         expand("results/align/bwa/A2780-GT20/A2780-GT20.{adapt}.aln.bam", adapt = adapters_comb_str)
@@ -199,17 +210,18 @@ rule markduplicates:
         "Potential PCR duplicates are marked.\n"
         "Sample: {wildcards.aliquot_barcode}"
     run:
-        multi_input = " ".join(["--INPUT=" + s for s in input])
+        multi_input = "".join(["--INPUT=" + s for s in input])
         shell("gatk --java-options -Xmx6g MarkDuplicates \
-            {multi_input} \
+           {multi_input} \
+            --INPUT={input} \
             --OUTPUT={output.bam} \
             --METRICS_FILE={output.metrics} \
             --CREATE_INDEX=true \
-            --TMP_DIR=/fastscratch/barthf/temp \
+#TODO pull value from config
+            --TMP_DIR=~/Temp \
             --MAX_RECORDS_IN_RAM={params.max_records} \
             > {log} 2>&1")
-
-
+### TOFIX
 rule callpeaks:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
@@ -238,7 +250,7 @@ rule callpeaks:
             -B \
             -q 0.01 \
             > {log} 2>&1"""
-
+###TOFIX
 rule telseq:
     input:
         "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
@@ -254,7 +266,7 @@ rule telseq:
     shell:"""
         telseq -r 151 -k 7 -o {output} {input} \
             > {log} 2>&1"""
-
+###TOFIX
 rule bedtools_count:
     input:
         bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
@@ -303,7 +315,7 @@ rule bedtools_gc:
 rule prefetch:
     output:
 ### TODO change to relative path
-        "~/ncbi/public/sra/{sraid}.sra"
+        "ncbi/public/sra/{sraid}.sra"
     params:
         sraid = "SRR8616019"
     log:
@@ -315,12 +327,13 @@ rule prefetch:
         prefetch {params.sraid} \
             > {log} 2>&1"""
 
-
+#TOFIX
 ## SAM-dump (eg. convert SRR into SAM) downloaded file
 rule samdump:
     input:
 ### TODO change to relative path
-        srr = "~/ncbi/public/sra/{sraid}.sra"
+### ln -s ../NCBI .
+        srr = "ncbi/public/sra/{sraid}.sra"
     output:
         sam = temp("results/align/samdump/{sraid}.sam"),
         bam = "results/align/samdump/{sraid}.bam",
@@ -376,7 +389,7 @@ rule bedtools_gc_rna:
             | cut -f 1-4,6 \
             > {output} \
             2> {log}"""
-
+###TOFIX
 rule bedtools_gencode_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.gc.bed",
@@ -398,4 +411,4 @@ rule bedtools_gencode_rna:
 rule all:
     input: "results/align/macs2/A2780-GT20/A2780-GT20_peaks.xls", "results/align/telseq/A2780-GT20.telseq.txt", "results/align/bedtools/A2780-GT20.counts.gc.bed", "results/align/samdump/SRR8616019.bam", "results/align/bedtools/SRR8616019.counts.rna.gc.bed", "results/align/bedtools/SRR8616019.counts.rna.gc.gencode.bed"
 
-# ## END ##
+## END ##

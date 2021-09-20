@@ -5,7 +5,7 @@
 cluster_json:     "cluster.json"
 
 ## Temporary directory
-tempdir:          "~/temp"
+tempdir:          "Temp"
 
 ## Reference genome
 reference_fasta:  "data/ref/human_g1k_v37_decoy.fasta"
