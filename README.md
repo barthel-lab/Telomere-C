@@ -4,10 +4,10 @@ Telomere interaction analysis
 
 # To start:
 
-1. [Build environment](https://github.com/fpbarthel/Telomere-C/new/deploy_on_dback?readme=1#1-build-enviroment)
-2. [Check dependent packages](https://github.com/fpbarthel/Telomere-C/new/deploy_on_dback?readme=1#2-check-dependent-packages)
-3. [Configure Telomere-C](https://github.com/fpbarthel/Telomere-C/new/deploy_on_dback?readme=1#3-configure-telomere-c)
-4. [Configure Snakemake --profile to run on Slurm (Optional)](https://github.com/fpbarthel/Telomere-C/new/deploy_on_dback?readme=1#4-configure-snakemake---profile-optional)
+1. [Build environment](https://github.com/fpbarthel/Telomere-C/tree/deploy_on_dback#1-build-enviroment)
+2. [Check dependent packages](https://github.com/fpbarthel/Telomere-C/tree/deploy_on_dback#2-check-dependent-packages)
+3. [Configure Telomere-C](https://github.com/fpbarthel/Telomere-C/tree/deploy_on_dback#3-configure-telomere-c)
+4. [Configure Snakemake --profile to run on Slurm (Optional)](https://github.com/fpbarthel/Telomere-C/tree/deploy_on_dback#4-configure-snakemake---profile-optional)
 
 Then run,
 
@@ -163,15 +163,10 @@ Assign a path of reference genome .fasta file. Recommend to put the file in `dat
 
 Assign a path of bin bed file for counting coverage per bin. The default file is in the `data/`. 
 
-`bin = "<data/bin.100Kb.windows.bed>"`
+`bin = "<data/bin.windows.bed>"`
 
-To generate bed file, type `bedtools makewindows` command to read instruction.
-
-    Usage: bedtools makewindows [OPTIONS] [-g <genome> OR -b <bed>] [ -w <window_size> OR -n <number of windows> ]
-    ...
-    ...	    
-    Notes: 
-        (1) The genome file should tab delimited and structured as follows: 
+To get bin file, first, generate the genome file describing size of chromosome. It should tab delimited and structured as follows: 
+        
         <chromName><TAB><chromSize>
 
         For example, Human (hg19):
@@ -180,22 +175,13 @@ To generate bed file, type `bedtools makewindows` command to read instruction.
         ...
         chr18_gl000207_random	4262
 
-    Tips: 
-        One can use the UCSC Genome Browser's MySQL database to extract
-        chromosome sizes. For example, H. sapiens:
+typeing:
 
-        mysql --user=genome --host=genome-mysql.cse.ucsc.edu -A -e \
-        "select chrom, size from hg19.chromInfo" > hg19.genome
+        cat <data/ref/refernce.dict>|awk '{print $2 "\t" $3}'|sed 's/SN\:chr/chr/g'|sed 's/LN\://g'|tail -n +2> <refernce.genome>
 
-    Examples: 
-    # Divide the human genome into windows of 1MB:
-    $ bedtools makewindows -g hg19.txt -w 1000000
-    chr1 0 1000000
-    chr1 1000000 2000000
-    chr1 2000000 3000000
-    chr1 3000000 4000000
-    chr1 4000000 5000000
-    ...
+Second generate bin bed file:
+
+        bedtools makewindows -g <refernce.genome> -w <window_size>|cat <bin.windows.bed>.bed
 
 ### Optimal  Group ID
 
