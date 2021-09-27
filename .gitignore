@@ -2,6 +2,9 @@ sandbox/**
 Snakefile_bk/**
 backup/**
 results/**
-data/ref/**
-data/fastq/**
-~/temp/**
+data/ref/*.fasta
+data/ref/*.fasta.*
+data/fastq/*.fastq.gz
+temp/**
+Temp
+

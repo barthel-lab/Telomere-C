@@ -8,13 +8,16 @@
 #cutadapt -e 0.07 --no-indels -a file:data/ref/telomerec.cutadapt2.fasta -A file:data/ref/telomerec.cutadapt2.fasta -o sandbox2/{name1}-{name2}.1.fastq.gz -p sandbox2/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
 
 #==| Start of Configure |==#
-# Sequence pair-end reads
+# Sample name
+Sname = "A2780-GT20"
 input_read1= "data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
 input_read2= "data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
 # Reference genome (Make sure coresponding index files are in the same director)
 ref_fasta= "data/ref/human_g1k_v37_decoy.fasta"
-# Interested Group ID
-opt_rg= "data/ref/optimalrg.txt"
+# Bin file
+bin = "data/b37.100Kb.windows.bed"
+# Optimal Group ID
+opt_rg= "data/optimalrg.txt"
 # Sequecning platform
 platform = "ILLUMINA"
 # Platform unit
@@ -22,16 +25,13 @@ unit = "G5B3NM02838.1"
 # Library name
 lib = "BAR65723"
 date = "20200321"
-# Sample name
-Sname = "A2780-GT20"
 # Sequencing center
 center = "JAX"
-bin = "data/ref/b37.100Kb.windows.bed"
 SRAID = "SRR8616019"
 # Telomeric adapter
-ADPT = "data/ref/telomerec.cutadapt.fasta"
+ADPT = "data/telomerec.cutadapt.fasta"
 # Telomeric clip reads
-CLIP = "data/ref/telomerec.clipreads.fasta"
+CLIP = "data/telomerec.clipreads.fasta"
 #==| END of Configure|==#
 
 ## Define adapter combinations
@@ -80,7 +80,7 @@ rule fq2ubam:
     output:
         "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam"
     params:
-        RGID = "{adapt}.G5B3N.1",
+        RGID = "{adapt}",
 #        RGID = "{adapt}",
         RGPL = platform,
         RGPU = unit,
@@ -396,7 +396,7 @@ rule bedtools_gc_rna:
 rule bedtools_gencode_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.gc.bed",
-        gtf = "data/ref/gencode.v19.flattened.captured.sorted.bed"
+        gtf = "data/gencode.v19.flattened.captured.sorted.bed"
     output:
         "results/align/bedtools/{sraid}.counts.rna.gc.gencode.bed"
     log:
@@ -410,8 +410,14 @@ rule bedtools_gencode_rna:
             > {output} \
             2> {log}"""
 
-### TODO can we generate these by a script
+# get the value from the head: input config
 rule all:
-    input: "results/align/macs2/A2780-GT20/A2780-GT20_peaks.xls", "results/align/telseq/A2780-GT20.telseq.txt", "results/align/bedtools/A2780-GT20.counts.gc.bed", "results/align/samdump/SRR8616019.bam", "results/align/bedtools/SRR8616019.counts.rna.gc.bed", "results/align/bedtools/SRR8616019.counts.rna.gc.gencode.bed"
+    input: 
+       expand("results/align/macs2/{name}/{name}_peaks.xls",name=Sname),
+       expand("results/align/telseq/{name}.telseq.txt",name=Sname),
+       expand("results/align/bedtools/{name}.counts.gc.bed",name=Sname),
+       expand("results/align/samdump/{sra_out}.bam",sra_out=SRAID),
+       expand("results/align/bedtools/{sra_out}.counts.rna.gc.bed",sra_out=SRAID),
+       expand("results/align/bedtools/{sra_out}.counts.rna.gc.gencode.bed",sra_out=SRAID)
 
 ## END ##
