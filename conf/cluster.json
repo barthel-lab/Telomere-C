@@ -7,107 +7,105 @@
         "nodes" : 1,
         "cpus-per-task" : 2,
         "time" : "72:00:00",
-        "mem" : "12g",
-        "partition" : "compute",
-        "qos" : "batch",
+        "mem" : "12G",
         "output" : "logs/slurm/{rule}.{wildcards.aliquot_barcode}.out",
         "error" : "logs/slurm/{rule}.{wildcards.aliquot_barcode}.err"
     },
     "cutadapt" :
     {
         "cpus-per-task" : 2,
-        "mem" : "12g",
+        "mem" : "12G",
         "time" : "2:00:00"
     },
     "fq2ubam" :
     {
         "cpus-per-task" : 2,
-        "mem" : "12g",
+        "mem" : "12G",
         "time" : "6:00:00"
     },
     "fastqc" :
     {
         "cpus-per-task" : 2,
-        "mem" : "12g",
+        "mem" : "12G",
         "time" : "72:00:00"
     },
     "clipreads" :
     {
         "cpus-per-task" : 2,
-        "mem" : "12g",
+        "mem" : "12G",
         "time" : "6:00:00"
     },
     "markadapters" :
     {
         "cpus-per-task" : 2,
-        "mem" : "12g",
+        "mem" : "12G",
         "time" : "6:00:00"
     },
     "samtofastq_bwa_mergebamalignment" :
     {
         "cpus-per-task" : 12,
         "time" : "8:00:00",
-        "mem" : "72g"
+        "mem" : "72G"
     },
     "markduplicates" :
     {
         "cpus-per-task" : 6,
         "time" : "12:00:00",
-        "mem" : "24g"
+        "mem" : "24G"
     },
     "baserecalibrator" :
     {
         "cpus-per-task" : 2,
         "time" : "72:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "applybqsr" :
     {
         "cpus-per-task" : 2,
         "time" : "72:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "wgsmetrics" :
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "validatebam" :
     {
         "cpus-per-task" : 2,
         "time" : "72:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "callpeaks" :
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "telseq" :
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "bedtools_count" :
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "bedtools_gc" :
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     },
     "bedtools_count_rna" :
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g",
+        "mem" : "12G",
         "job-name" : "{rule}.{wildcards.sraid}",
         "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
         "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
@@ -116,7 +114,7 @@
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g",
+        "mem" : "12G",
         "job-name" : "{rule}.{wildcards.sraid}",
         "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
         "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
@@ -125,7 +123,7 @@
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g",
+        "mem" : "12G",
         "job-name" : "{rule}.{wildcards.sraid}",
         "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
         "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
@@ -134,7 +132,7 @@
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g",
+        "mem" : "12G",
         "job-name" : "{rule}.{wildcards.sraid}",
         "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
         "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
@@ -143,7 +141,7 @@
     {
         "cpus-per-task" : 2,
         "time" : "2:00:00",
-        "mem" : "12g",
+        "mem" : "12G",
         "job-name" : "{rule}.{wildcards.sraid}",
         "output" : "logs/slurm/{rule}.{wildcards.sraid}.out",
         "error" : "logs/slurm/{rule}.{wildcards.sraid}.err"
@@ -155,6 +153,6 @@
         "error" : "logs/drmaa/{rule}.err",
         "cpus-per-task" : 2,
         "time" : "72:00:00",
-        "mem" : "12g"
+        "mem" : "12G"
     }
 }
