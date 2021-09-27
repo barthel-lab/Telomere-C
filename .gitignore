@@ -4,6 +4,7 @@ backup/**
 results/**
 data/ref/*.fasta
 data/ref/*.fasta.*
+data/ref/*.dict
 data/fastq/*.fastq.gz
 temp/**
 Temp
