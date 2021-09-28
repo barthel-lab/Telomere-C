@@ -167,7 +167,11 @@ Assign a path of reference genome .fasta file. Recommend to put the file in `dat
 
 `sra_ref_fasta="<data/ref/sra_genome_ref.fasta>"`
 
+<<<<<<< HEAD
 ### sra refence genome annoation 
+=======
+### sra refence genome addnoation 
+>>>>>>> fa8ecaaee314b91b7edb3b6a497a968ebfe0eb3a
 `sra_anno = "<sra_anno.bed>"`
 
 ### Bin file
@@ -175,6 +179,7 @@ Assign a path of reference genome .fasta file. Recommend to put the file in `dat
 Assign a path of bin bed file for counting coverage per bin. The default file is in the `data/`. 
 
 `bin = "<data/bin.windows.bed>"`
+`sra_bin="<data/srq_bin.windows.bed>"`
 
 `sra_bin="<data/srq_bin.windows.bed>"`
 
