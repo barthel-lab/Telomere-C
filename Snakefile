@@ -9,13 +9,18 @@
 
 #==| Start of Configure |==#
 # Sample name
-Sname = "A2780-GT20"
-input_read1= "data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
-input_read2= "data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
+Sname = "SW13-post2"
+input_read1= "data/fastq/SW13-post_2_GT21-13127_GACCTGAA-TTGGTGAG_S2_R1_001.fastq.gz"
+input_read2= "data/fastq/SW13-post_2_GT21-13127_GACCTGAA-TTGGTGAG_S2_R2_001.fastq.gz"
 # Reference genome (Make sure coresponding index files are in the same director)
-ref_fasta= "data/ref/human_g1k_v37_decoy.fasta"
+ref_fasta= "data/ref/chm13.draft_v1.1.fasta"
+# sra refence genome
+sra_ref_fasta="/home/ychen/Telomere-C/data/ref/human_g1k_v37_decoy.fasta"
+# sra refence genome addnoation 
+sra_anno = "/home/ychen/Telomere-C/data/gencode.v19.flattened.captured.sorted.bed"
 # Bin file
-bin = "data/b37.100Kb.windows.bed"
+bin = "data/chm13.draft_v1.1.100k.bed"
+sra_bin="/home/ychen/Telomere-C/data/b37.100Kb.windows.bed"
 # Optimal Group ID
 opt_rg= "data/optimalrg.txt"
 # Sequecning platform
@@ -43,9 +48,9 @@ adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
 # For testing
 #adapters_comb_str = ['FtFb-FtFb','FtFb-FtRb']
 
-## 3' adapters are assumed using -g and -G for read1 and read2, respectively
+## 5' adapters are assumed using -g and -G for read1 and read2, respectively
 ## The adapters are anchored (indicated by the ^ in the fasta file)
-## This means that the adapters are fixed to the 3' end
+## This means that the adapters are fixed to the 5' end
 rule cutadapt:
     input:
         R1=input_read1,
@@ -360,7 +365,7 @@ rule samdump:
 rule bedtools_count_rna:
     input:
         bam = "results/align/samdump/{sraid}.bam",
-        windows = bin
+        windows = sra_bin
     output:
         "results/align/bedtools/{sraid}.counts.rna.bed"
     log:
@@ -378,7 +383,7 @@ rule bedtools_count_rna:
 rule bedtools_gc_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.bed",
-        fa = ref_fasta
+        fa = sra_ref_fasta
     output:
         "results/align/bedtools/{sraid}.counts.rna.gc.bed"
     log:
@@ -396,7 +401,7 @@ rule bedtools_gc_rna:
 rule bedtools_gencode_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.gc.bed",
-        gtf = "data/gencode.v19.flattened.captured.sorted.bed"
+        gtf = sra_anno
     output:
         "results/align/bedtools/{sraid}.counts.rna.gc.gencode.bed"
     log:
