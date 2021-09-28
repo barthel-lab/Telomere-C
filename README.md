@@ -127,6 +127,10 @@ See [bwa](https://github.com/lh3/bwa#getting-started) for the detailed instructi
 **Note2:** To generate dictionary files:
 
     gatk CreateSequenceDictionary -R "<refernce.fasta>" -O "<refernce.dict>"
+
+**Note3:** If your refence fasta files are compressed (i.e. .gz or .bzip), use gatk tools to get normalized and uncompressed refence fasta file.
+
+    gatk NormalizeFasta -I <ref.fasta.gz> -O <ref.norm.fastq>
     
 See [gatk CreateSequenceDictionary](https://gatk.broadinstitute.org/hc/en-us/articles/360036729911-CreateSequenceDictionary-Picard-) for the detailed instruction.
 
@@ -159,11 +163,20 @@ Assign a path of reference genome .fasta file. Recommend to put the file in `dat
 
 `ref_fasta= "<data/ref/genome_ref.fasta>"`
 
+### sra refence genome
+
+`sra_ref_fasta="<data/ref/sra_genome_ref.fasta>"`
+
+### sra refence genome annoation 
+`sra_anno = "<sra_anno.bed>"`
+
 ### Bin file
 
 Assign a path of bin bed file for counting coverage per bin. The default file is in the `data/`. 
 
 `bin = "<data/bin.windows.bed>"`
+
+`sra_bin="<data/srq_bin.windows.bed>"`
 
 To get bin file, first, generate the genome file describing size of chromosome. It should tab delimited and structured as follows: 
         
@@ -177,7 +190,7 @@ To get bin file, first, generate the genome file describing size of chromosome. 
 
 typeing:
 
-        cat <data/ref/refernce.dict>|awk '{print $2 "\t" $3}'|sed 's/SN\:chr/chr/g'|sed 's/LN\://g'|tail -n +2> <refernce.genome>
+        cat <data/ref/refernce.dict>|awk '{print $2 "\t" $3}'|sed 's/SN\:chr//g'|sed 's/LN\://g'|tail -n +2> <refernce.genome>
 
 Second generate bin bed file:
 
