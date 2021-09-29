@@ -210,7 +210,7 @@ rule samtofastq_bwa_mergebamalignment:
 
 rule markduplicates:
     input:
-        expand("results/align/bwa/A2780-GT20/A2780-GT20.{adapt}.aln.bam", adapt = adapters_comb_str)
+        expand("results/align/bwa/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.aln.bam", adapt = adapters_comb_str)
     output:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
         bai = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bai",
