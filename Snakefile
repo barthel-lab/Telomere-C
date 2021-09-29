@@ -16,7 +16,7 @@ input_read2= "data/fastq/SW13-post_2_GT21-13127_GACCTGAA-TTGGTGAG_S2_R2_001.fast
 ref_fasta= "data/ref/chm13.draft_v1.1.fasta"
 # sra refence genome
 sra_ref_fasta="/home/ychen/Telomere-C/data/ref/human_g1k_v37_decoy.fasta"
-# sra refence genome addnoation 
+# sra refence genome annoation 
 sra_anno = "/home/ychen/Telomere-C/data/gencode.v19.flattened.captured.sorted.bed"
 # Bin file
 bin = "data/chm13.draft_v1.1.100k.bed"
@@ -210,7 +210,7 @@ rule samtofastq_bwa_mergebamalignment:
 
 rule markduplicates:
     input:
-        expand("results/align/bwa/A2780-GT20/A2780-GT20.{adapt}.aln.bam", adapt = adapters_comb_str)
+        expand("results/align/bwa/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.aln.bam", adapt = adapters_comb_str)
     output:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
         bai = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bai",
