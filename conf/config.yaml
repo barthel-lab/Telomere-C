@@ -5,13 +5,13 @@
 cluster_json:     "cluster.json"
 
 ## Temporary directory
-tempdir:          "~/temp"
+tempdir:          "Temp"
 
 ## Reference genome
-reference_fasta:  "data/ref/human_g1k_v37_decoy.fasta"
+#reference_fasta:  "data/ref/human_g1k_v37_decoy.fasta"
 
 ## Reference dictionary
-reference_dict:   "data/ref/human_g1k_v37_decoy.dict"
+#reference_dict:   "data/ref/human_g1k_v37_decoy.dict"
 
 ## GATK options
 seconds_between_progress_updates: 900
