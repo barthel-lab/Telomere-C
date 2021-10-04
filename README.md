@@ -48,7 +48,7 @@ Telomere-C required bellowing packages:
 |packge_name|current version|document|
 |:---   |:---            |:---|
 |cutadapt|3.4|https://cutadapt.readthedocs.io/en/stable/|
-|gatk4|4.0.12.0|https://gatk.broadinstitute.org/hc/en-us/articles/360036194592-Getting-started-with-GATK4|
+|gatk4|4.2.2.0|https://gatk.broadinstitute.org/hc/en-us/articles/360036194592-Getting-started-with-GATK4|
 |bwa|0.7.17|https://github.com/lh3/bwa|
 |samtools|1.13|http://www.htslib.org/|
 |telseq|0.0.2|https://github.com/zd1/telseq|
