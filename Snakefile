@@ -10,16 +10,16 @@
 #==| Start of Configure |==#
 # Sample name
 Sname = "A2780"
-input_read1= "/home/ychen/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
-input_read2= "/home/ychen/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
+input_read1= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
+input_read2= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
 # Reference genome (Make sure coresponding index files are in the same director)
-ref_fasta="/home/ychen/reference/CHM13/chm13.draft_v1.1.fasta"
+ref_fasta="/labs/barthel/references/CHM13/chm13.draft_v1.1.fasta"
 # sra refence genome
-sra_ref_fasta="/home/ychen/reference/b37/human_g1k_v37_decoy.fasta"
+sra_ref_fasta="/labs/barthel/references/GRCh37/human_g1k_v37_decoy.fasta"
 # sra refence genome annoation 
-sra_anno = "data/gencode.v19.flattened.captured.sorted.bed"
+sra_anno = "/labs/barthel/references/GRCh37/gencode.v19.flattened.captured.sorted.bed"
 # Bin file
-bin = "/home/ychen/reference/CHM13/chm13.draft_v1.1.100k.bed"
+bin = "/labs/barthel/references/CHM13/chm13.draft_v1.1.100k.bed"
 sra_bin="data/b37.100Kb.windows.bed"
 # Optimal Group ID
 opt_rg= "data/optimalrg.txt"
