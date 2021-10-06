@@ -9,9 +9,17 @@ Telomere interaction analysis
 3. [Configure Telomere-C](https://github.com/fpbarthel/Telomere-C/tree/deploy_on_dback#3-configure-telomere-c)
 4. [Configure Snakemake --profile to run on Slurm (Optional)](https://github.com/fpbarthel/Telomere-C/tree/deploy_on_dback#4-configure-snakemake---profile-optional)
 
-Then run,
+5. Enter compute node
 
-    bash snakemake-run.sh
+        srun --pty --time=72:00:00 /bin/bash
+
+6. Activate condaStart snakemake environment
+
+        conda activate snakemake
+
+7. run the job
+
+        sh snakemake-run.sh
 
 # 1 Build enviroment
 
@@ -48,7 +56,7 @@ Telomere-C required bellowing packages:
 |packge_name|current version|document|
 |:---   |:---            |:---|
 |cutadapt|3.4|https://cutadapt.readthedocs.io/en/stable/|
-|gatk4|4.0.12.0|https://gatk.broadinstitute.org/hc/en-us/articles/360036194592-Getting-started-with-GATK4|
+|gatk4|4.2.2.0|https://gatk.broadinstitute.org/hc/en-us/articles/360036194592-Getting-started-with-GATK4|
 |bwa|0.7.17|https://github.com/lh3/bwa|
 |samtools|1.13|http://www.htslib.org/|
 |telseq|0.0.2|https://github.com/zd1/telseq|
@@ -58,10 +66,7 @@ Telomere-C required bellowing packages:
 |r-base| 4.0.5|https://www.r-project.org/|
 |r-tidyverse|1.3.1|https://www.tidyverse.org/|
 
-*To install packages, use command:* 
-
-    conda activate snakemake
-    conda install -c bioconda <packge_name>
+These dependencies will be automatically downloaded and installin the first run. Environment settings were described in `/Telomere-C/envs/` .yaml files.
 
 ## 2.1 Configure SRA-tools 
 

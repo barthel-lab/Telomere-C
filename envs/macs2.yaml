@@ -1,0 +1,5 @@
+channels:
+ - bioconda
+dependencies:
+ - macs2=2.2.7.1
+ - samtools=1.13

@@ -9,18 +9,18 @@
 
 #==| Start of Configure |==#
 # Sample name
-Sname = "SW13-post2"
-input_read1= "data/fastq/SW13-post_2_GT21-13127_GACCTGAA-TTGGTGAG_S2_R1_001.fastq.gz"
-input_read2= "data/fastq/SW13-post_2_GT21-13127_GACCTGAA-TTGGTGAG_S2_R2_001.fastq.gz"
+Sname = "A2780"
+input_read1= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
+input_read2= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
 # Reference genome (Make sure coresponding index files are in the same director)
-ref_fasta= "data/ref/chm13.draft_v1.1.fasta"
+ref_fasta="/labs/barthel/references/CHM13/chm13.draft_v1.1.fasta"
 # sra refence genome
-sra_ref_fasta="/home/ychen/Telomere-C/data/ref/human_g1k_v37_decoy.fasta"
+sra_ref_fasta="/labs/barthel/references/GRCh37/human_g1k_v37_decoy.fasta"
 # sra refence genome annoation 
-sra_anno = "/home/ychen/Telomere-C/data/gencode.v19.flattened.captured.sorted.bed"
+sra_anno = "/labs/barthel/references/GRCh37/gencode.v19.flattened.captured.sorted.bed"
 # Bin file
-bin = "data/chm13.draft_v1.1.100k.bed"
-sra_bin="/home/ychen/Telomere-C/data/b37.100Kb.windows.bed"
+bin = "/labs/barthel/references/CHM13/chm13.draft_v1.1.100k.bed"
+sra_bin="data/b37.100Kb.windows.bed"
 # Optimal Group ID
 opt_rg= "data/optimalrg.txt"
 # Sequecning platform
@@ -69,6 +69,8 @@ rule cutadapt:
     message:
         "Splitting FASTQ file by telomere bridge linker adapter permutations\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/cutadapt.yaml"
     shell:"""cutadapt \
             -e 0.16 \
             -g file:{input.adapters} \
@@ -101,6 +103,8 @@ rule fq2ubam:
         "Converting FASTQ file to uBAM format\n"
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
+    conda:
+        "envs/gatk4.yaml"
 # Since gatk4, no need '=' in the arument
     shell:"""gatk --java-options -Xmx6g FastqToSam \
             --FASTQ {input.R1} \
@@ -130,6 +134,8 @@ rule markadapters:
         "Adding XT tags. This marks Illumina Adapters and allows them to be removed in later steps\n"
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
+    conda:
+        "envs/gatk4.yaml"
     shell:
         """gatk --java-options -Xmx6g MarkIlluminaAdapters \
             --INPUT {input} \
@@ -153,6 +159,8 @@ rule clipreads:
         "Clip reads. This clips the mostly reverse-complement 4C PCR primers on the 3' end of fragments due to short inserts\n"
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
+    conda:
+        "envs/gatk4.yaml"
     shell:
         """gatk --java-options -Xmx6g ClipReads \
             -I {input.ubam} \
@@ -182,6 +190,8 @@ rule samtofastq_bwa_mergebamalignment:
         "with the original pre-aligned BAM to preserve original metadata, including read groups.\n"
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
+    conda:
+        "envs/bwa.yaml"
     shell:
         """gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.compression_level=1 -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx128m' SamToFastq \
             --INPUT {input.bam} \
@@ -222,19 +232,27 @@ rule markduplicates:
     benchmark:
         "benchmarks/align/markduplicates/{aliquot_barcode}.txt"
     message:
-        "Readgroup-specific BAM files are combined into a single BAM. "
+        "Readgroup-specific BAM files are combined into a single BAM."
         "Potential PCR duplicates are marked.\n"
         "Sample: {wildcards.aliquot_barcode}"
-    run:
-        multi_input = " ".join(["--INPUT " + s for s in input])
-        shell("gatk --java-options -Xmx6g MarkDuplicates \
-            {multi_input} \
+    conda:
+        "envs/gatk4.yaml"
+# Snakemake dosn't accept 'Run:' in the rule, when using --use-conda option. So, I chagne 'Run:' to 'Shell:'.
+# Therefore, the python script "multi_input = " ".join(["--INPUT " + s for s in input])" was translated into shell
+    shell:
+        """multi_input=""; \
+        arr=$(echo {input}); \
+        for i in ${{arr[@]}}; \
+        do multi_input=$(echo $multi_input $(echo --INPUT $i)); \
+        done; \
+        gatk --java-options -Xmx6g MarkDuplicates \
+            ${{multi_input}} \
             --OUTPUT {output.bam} \
             --METRICS_FILE {output.metrics} \
             --CREATE_INDEX true \
             --TMP_DIR Temp \
             --MAX_RECORDS_IN_RAM {params.max_records} \
-            > {log} 2>&1")
+            > {log} 2>&1"""
 
 rule callpeaks:
     input:
@@ -252,6 +270,8 @@ rule callpeaks:
     message:
         "Calling peaks using MACS2.\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/macs2.yaml"
     shell:"""
          samtools view -R {input.rg} -b -q 30 {input.bam} > {output.filtered_bam}; \
          samtools index {output.filtered_bam}; \
@@ -277,6 +297,8 @@ rule telseq:
     message:
         "Quantification of telomere sequences using TelSeq\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/telseq.yaml"
     shell:"""
         telseq -r 151 -k 7 -o {output} {input} \
             > {log} 2>&1"""
@@ -294,6 +316,8 @@ rule bedtools_count:
     message:
         "Count read coverage per bin\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/bedtools.yaml"
     shell:"""
         bedtools intersect -a {input.windows} \
                    -b {input.bam} \
@@ -314,6 +338,8 @@ rule bedtools_gc:
     message:
         "Annotate bins by GC content\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/bedtools.yaml"
     shell:"""
         bedtools nuc -fi {input.fa} \
              -bed {input.bed} \
@@ -335,6 +361,8 @@ rule prefetch:
     message:
         "Downloading SRR file\n"
         "SRA ID: {wildcards.sraid}"
+    conda:
+        "envs/sra-tools.yaml"
     shell:"""
         prefetch {params.sraid} \
             > {log} 2>&1"""
@@ -353,6 +381,8 @@ rule samdump:
     message:
         "Convert SRR file to BAM and create index\n"
         "SRA ID: {wildcards.sraid}"
+    conda:
+        "envs/sra-tools.yaml"
     shell:"""
         sam-dump {input.srr} \
             > {output.sam} \
@@ -373,6 +403,8 @@ rule bedtools_count_rna:
     message:
         "Count read coverage per bin for RNAseq\n"
         "Sample: {wildcards.sraid}"
+    conda:
+        "envs/bedtools.yaml"
     shell:"""
         bedtools intersect -a {input.windows} \
                    -b {input.bam} \
@@ -391,6 +423,8 @@ rule bedtools_gc_rna:
     message:
         "Annotate bins by GC content\n"
         "Sample: {wildcards.sraid}"
+    conda:
+        "envs/bedtools.yaml"
     shell:"""
         bedtools nuc -fi {input.fa} \
              -bed {input.bed} \
@@ -409,6 +443,8 @@ rule bedtools_gencode_rna:
     message:
         "Annotate bins by overlap with Gencode GTF\n"
         "Sample: {wildcards.sraid}"
+    conda:
+        "envs/bedtools.yaml"
     shell:"""
         bedtools annotate -i {input.bed} \
             -files {input.gtf} \
