@@ -237,7 +237,8 @@ rule markduplicates:
         "Sample: {wildcards.aliquot_barcode}"
     conda:
         "envs/gatk4.yaml"
-# multi_input = " ".join(["--INPUT " + s for s in input]) sane as join " " {input})
+# Snakemake dosn't accept 'Run:' in the rule, when --use-conda option is used. So I chagne Run is Shell.
+# Therefore, the python script "multi_input = " ".join(["--INPUT " + s for s in input])" was translated into shell
     shell:
         """multi_input=""; \
         arr=$(echo {input}); \
