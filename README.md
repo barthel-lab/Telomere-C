@@ -11,15 +11,15 @@ Telomere interaction analysis
 
 5. Enter compute node
 
-    srun --pty --time=72:00:00 /bin/bash
+        srun --pty --time=72:00:00 /bin/bash
 
 6. Activate condaStart snakemake environment
 
-    conda activate snakemake
+        conda activate snakemake
 
 7. run the job
 
-    sh snakemake-run.sh
+        sh snakemake-run.sh
 
 # 1 Build enviroment
 
