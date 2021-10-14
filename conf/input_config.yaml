@@ -1,0 +1,26 @@
+# Sample setting
+Sname: "A2780"
+input_read1: "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
+input_read2: "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
+ref_fasta:   "/labs/barthel/references/CHM13/chm13.draft_v1.1.fasta"
+bin:         "/labs/barthel/references/CHM13/chm13.draft_v1.1.100k.bed"
+
+# Annotations to ubam file
+platform: "ILLUMINA"
+unit: "G5B3NM02838.1"
+lib: "BAR65723"
+date: "20200321"
+center: "JAX"
+
+# Adapters and optimal read group
+ADPT:   "data/telomerec.cutadapt.fasta"
+CLIP:   "data/telomerec.clipreads.fasta"
+opt_rg: "data/optimalrg.txt"
+
+# SRA setting
+SRAID:         "SRR8616019"
+sra_ref_fasta: "/labs/barthel/references/GRCh37/human_g1k_v37_decoy.fasta"
+sra_anno:      "/labs/barthel/references/GRCh37/gencode.v19.flattened.captured.sorted.bed"
+sra_bin:       "/labs/barthel/references/GRCh37/b37.100Kb.windows.bed"
+
+#END

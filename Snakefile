@@ -1,43 +1,5 @@
-##"results/align/cutadapt/A2780-GT20/A2780-GT20.unknown-unknown.1.fastq.gz"        
-
-## 5' 
-#cutadapt -e 0.07 --no-indels -g file:data/ref/telomerec.cutadapt.fasta -G file:data/ref/telomerec.cutadapt.fasta -o sandbox/{name1}-{name2}.1.fastq.gz -p sandbox/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
-#cutadapt -e 0.16 -g file:data/ref/telomerec.cutadapt.fasta -G file:data/ref/telomerec.cutadapt.fasta -o sandbox2/{name1}-{name2}.1.fastq.gz -p sandbox2/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
-
-## 3'
-#cutadapt -e 0.07 --no-indels -a file:data/ref/telomerec.cutadapt2.fasta -A file:data/ref/telomerec.cutadapt2.fasta -o sandbox2/{name1}-{name2}.1.fastq.gz -p sandbox2/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
-
-#==| Start of Configure |==#
-# Sample name
-Sname = "A2780"
-input_read1= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
-input_read2= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
-# Reference genome (Make sure coresponding index files are in the same director)
-ref_fasta="/labs/barthel/references/CHM13/chm13.draft_v1.1.fasta"
-# sra refence genome
-sra_ref_fasta="/labs/barthel/references/GRCh37/human_g1k_v37_decoy.fasta"
-# sra refence genome annoation 
-sra_anno = "/labs/barthel/references/GRCh37/gencode.v19.flattened.captured.sorted.bed"
-# Bin file
-bin = "/labs/barthel/references/CHM13/chm13.draft_v1.1.100k.bed"
-sra_bin="data/b37.100Kb.windows.bed"
-# Optimal Group ID
-opt_rg= "data/optimalrg.txt"
-# Sequecning platform
-platform = "ILLUMINA"
-# Platform unit
-unit = "G5B3NM02838.1"
-# Library name
-lib = "BAR65723"
-date = "20200321"
-# Sequencing center
-center = "JAX"
-SRAID = "SRR8616019"
-# Telomeric adapter
-ADPT = "data/telomerec.cutadapt.fasta"
-# Telomeric clip reads
-CLIP = "data/telomerec.clipreads.fasta"
-#==| END of Configure|==#
+# Use configfile to pull input information
+configfile:"conf/input_config.yaml"
 
 ## Define adapter combinations
 import itertools
@@ -45,17 +7,14 @@ adapters = ['FtFb','FtRb','RtFb','RtRb','unknown']
 adapters_comb = list(itertools.product(adapters, repeat=2))
 adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
 
-# For testing
-#adapters_comb_str = ['FtFb-FtFb','FtFb-FtRb']
-
 ## 5' adapters are assumed using -g and -G for read1 and read2, respectively
 ## The adapters are anchored (indicated by the ^ in the fasta file)
 ## This means that the adapters are fixed to the 5' end
 rule cutadapt:
     input:
-        R1=input_read1,
-        R2=input_read2,
-        adapters = ADPT
+        R1=config["input_read1"],
+        R2=config["input_read2"],
+        adapters = config["ADPT"]
     output:
         R1 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.1.fastq.gz", adapt = adapters_comb_str),
         R2 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.2.fastq.gz", adapt = adapters_comb_str)
@@ -88,13 +47,12 @@ rule fq2ubam:
         "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam"
     params:
         RGID = "{adapt}",
-#        RGID = "{adapt}",
-        RGPL = platform,
-        RGPU = unit,
-        RGLB = lib,
-        RGDT = date,
-        RGSM = Sname,
-        RGCN = center
+        RGPL = config["platform"],
+        RGPU = config["unit"],
+        RGLB = config["lib"],
+        RGDT = config["date"],
+        RGSM = config["Sname"],
+        RGCN = config["center"]
     log:
         "logs/align/fq2ubam/{aliquot_barcode}.{adapt}.log"
     benchmark:
@@ -147,7 +105,7 @@ rule markadapters:
 rule clipreads:
     input:
         ubam = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.{adapt}.markadapters.bam",
-        clipseq = CLIP
+        clipseq = config["CLIP"]
     output:
         ubam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
         stats = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.metrics.txt"
@@ -172,7 +130,7 @@ rule clipreads:
 rule samtofastq_bwa_mergebamalignment:
     input:
         bam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
-        ref = ref_fasta
+        ref = config["ref_fasta"]
     output:
         bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.{adapt}.aln.bam",
         bai = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.{adapt}.aln.bai"
@@ -267,7 +225,7 @@ rule markduplicates:
 rule callpeaks:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
-        rg = opt_rg 
+        rg = config["opt_rg"]
     output:
         filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
         peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.xls"
@@ -316,7 +274,7 @@ rule telseq:
 rule bedtools_count:
     input:
         bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
-        windows = bin 
+        windows = config["bin"]
     output:
         "results/align/bedtools/{aliquot_barcode}.counts.bed"
     log:
@@ -338,7 +296,7 @@ rule bedtools_count:
 rule bedtools_gc:
     input:
         bed = "results/align/bedtools/{aliquot_barcode}.counts.bed",
-        fa = ref_fasta 
+        fa = config["ref_fasta"]
     output:
         "results/align/bedtools/{aliquot_barcode}.counts.gc.bed"
     log:
@@ -365,7 +323,7 @@ rule prefetch:
     output:
         "ncbi/public/sra/{sraid}.sra"
     params:
-        sraid = SRAID 
+        sraid = config["SRAID"] 
     log:
         "logs/align/prefetch/{sraid}.log"
     message:
@@ -380,7 +338,6 @@ rule prefetch:
 ## SAM-dump (eg. convert SRR into SAM) downloaded file
 rule samdump:
     input:
-# Use ln -s to creat soft link in the working director        
         srr = "ncbi/public/sra/{sraid}.sra"
     output:
         sam = temp("results/align/samdump/{sraid}.sam"),
@@ -405,7 +362,7 @@ rule samdump:
 rule bedtools_count_rna:
     input:
         bam = "results/align/samdump/{sraid}.bam",
-        windows = sra_bin
+        windows = config["sra_bin"]
     output:
         "results/align/bedtools/{sraid}.counts.rna.bed"
     log:
@@ -425,7 +382,7 @@ rule bedtools_count_rna:
 rule bedtools_gc_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.bed",
-        fa = sra_ref_fasta
+        fa = config["sra_ref_fasta"]
     output:
         "results/align/bedtools/{sraid}.counts.rna.gc.bed"
     log:
@@ -445,7 +402,7 @@ rule bedtools_gc_rna:
 rule bedtools_gencode_rna:
     input:
         bed = "results/align/bedtools/{sraid}.counts.rna.gc.bed",
-        gtf = sra_anno
+        gtf = config["sra_anno"]
     output:
         "results/align/bedtools/{sraid}.counts.rna.gc.gencode.bed"
     log:
@@ -461,14 +418,14 @@ rule bedtools_gencode_rna:
             > {output} \
             2> {log}"""
 
-# get the value from the head: input config
 rule all:
     input: 
-       expand("results/align/macs2/{name}/{name}_peaks.xls",name=Sname),
-       expand("results/align/telseq/{name}.telseq.txt",name=Sname),
-       expand("results/align/bedtools/{name}.counts.gc.bed",name=Sname),
-       expand("results/align/samdump/{sra_out}.bam",sra_out=SRAID),
-       expand("results/align/bedtools/{sra_out}.counts.rna.gc.bed",sra_out=SRAID),
-       expand("results/align/bedtools/{sra_out}.counts.rna.gc.gencode.bed",sra_out=SRAID),
-       expand("results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt",aliquot_barcode=Sname)
+       expand("results/align/macs2/{name}/{name}_peaks.xls",name=config["Sname"]),
+       expand("results/align/telseq/{name}.telseq.txt",name=config["Sname"]),
+       expand("results/align/bedtools/{name}.counts.gc.bed",name=config["Sname"]),
+       expand("results/align/samdump/{sra_out}.bam",sra_out=config["SRAID"]),
+       expand("results/align/bedtools/{sra_out}.counts.rna.gc.bed",sra_out=config["SRAID"]),
+       expand("results/align/bedtools/{sra_out}.counts.rna.gc.gencode.bed",sra_out=config["SRAID"]),
+       expand("results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt",aliquot_barcode=config["Sname"])
+
 ## END ##
