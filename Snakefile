@@ -169,17 +169,6 @@ rule clipreads:
             --output-statistics {output.stats} \
             > {log} 2>&1"""
 
-rule linkerQC:
-    input:
-        "results/align/clipreads/{aliquot_barcode}"
-#        expand("results/align/clipreads/{aliquot_barcode}",aliquot_barcode=Sname)
-    output:
-        "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt"
-    conda:
-        "envs/r-tidyverse.yaml"
-    script:
-        "scripts/LinkerQC.R"
-
 rule samtofastq_bwa_mergebamalignment:
     input:
         bam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
@@ -228,6 +217,16 @@ rule samtofastq_bwa_mergebamalignment:
             --ATTRIBUTES_TO_RETAIN XS \
             --TMP_DIR Temp \
             > {log} 2>&1"""
+
+rule linkerQC:
+    input:
+        expand("results/align/clipreads/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.clipreads.metrics.txt",adapt = adapters_comb_str)
+    output:
+        "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt"
+    conda:
+        "envs/r-tidyverse.yaml"
+    script:
+        "scripts/LinkerQC.R"
 
 rule markduplicates:
     input:

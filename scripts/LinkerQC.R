@@ -2,8 +2,9 @@ library(tidyverse)
 
 # INPUT: several clipreads.metrics.txt tables
 # OUTOUT: A table describing number of two-linker, one-linker, or no-linker reads
-setwd(snakemake@input[[1]])
-prefix <- str_extract(snakemake@input[[1]],"\\w+$")
+path <- str_extract(snakemake@output[[1]],pattern = "^results.align.clipreads.\\w+")
+setwd(path)
+prefix <- str_extract(path,"\\w+$")
 
 # Define input tables
 mtrxName <- dir() %>% grep(pattern = "(.clipreads.metrics.txt)$", value = T)
