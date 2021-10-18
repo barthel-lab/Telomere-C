@@ -333,6 +333,94 @@ rule markduplicates:
             --MAX_RECORDS_IN_RAM {params.max_records} \
             > {log} 2>&1"""
 
+rule wgsmetrics:
+    input:
+        bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        ref = "/projects/verhaak-lab/GLASS-NF/references/GRCh37/human_g1k_v37_decoy.fasta"
+    output:
+        "results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
+    log:
+        "logs/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.log"
+    benchmark:
+        "benchmarks/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
+    message:
+        "Computing WGS Metrics\n"
+        "Sample: {wildcards.aliquot_barcode}"
+    shell:
+        "gatk --java-options -Xmx6g CollectWgsMetrics \
+            -R {input.ref} \
+            -I {input.bam} \
+            -O {output} \
+            --USE_FAST_ALGORITHM false \
+            > {log} 2>&1"
+
+rule alignmetrics:
+    input:
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        ref = "/projects/verhaak-lab/GLASS-NF/references/GRCh37/human_g1k_v37_decoy.fasta"
+    output:
+        "results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt"
+    log:
+        "logs/align/alignmetrics/{aliquot_barcode}.AlignMetrics.log"
+    benchmark:
+        "benchmarks/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt"
+    message:
+        "Computing Alignment Summary Metrics\n"
+        "Sample: {wildcards.aliquot_barcode}"
+    shell:
+        "gatk --java-options -Xmx6g CollectAlignmentSummaryMetrics \
+            -R {input.ref} \
+            -I {input.bam} \
+            -O {output} \
+            --METRIC_ACCUMULATION_LEVEL READ_GROUP \
+            > {log} 2>&1"
+
+rule multiplemetrics:
+    input:
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        ref = "/projects/verhaak-lab/GLASS-NF/references/GRCh37/human_g1k_v37_decoy.fasta"
+    output:
+        "results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics"
+    log:
+        "logs/align/multiplemetrics/{aliquot_barcode}.MultipleMetrics.log"
+    benchmark:
+        "benchmarks/align/multiplemetrics/{aliquot_barcode}.MultipleMetrics.txt"
+    message:
+        "Computing Multiple Metrics\n"
+        "Sample: {wildcards.aliquot_barcode}"
+    shell:
+        "gatk --java-options -Xmx6g CollectMultipleMetrics \
+            -R {input.ref} \
+            -I {input.bam} \
+            -O results/align/multiplemetrics/{wildcards.aliquot_barcode} \
+            --METRIC_ACCUMULATION_LEVEL READ_GROUP \
+            > {log} 2>&1"
+
+rule collectinsertsizemetrics:
+    input:
+        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
+    output:
+        txt = "results/align/insertmetrics/{aliquot_barcode}.insertmetrics.txt",
+        pdf = "results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf"
+    log:
+        "logs/align/insertmetrics/{aliquot_barcode}.log"
+    benchmark:
+        "benchmarks/align/insertmetrics/{aliquot_barcode}.txt"
+    message:
+        "Collect Insert Size Metrics\n"
+        "Sample: {wildcards.aliquot_barcode}"
+    shell:"""
+        gatk CollectInsertSizeMetrics \
+            -I {input} \
+            -O {output.txt} \
+            -H {output.pdf} \
+            -M 0.5 \
+            --METRIC_ACCUMULATION_LEVEL ALL_READS \
+            --METRIC_ACCUMULATION_LEVEL SAMPLE \
+            --METRIC_ACCUMULATION_LEVEL LIBRARY \
+            --METRIC_ACCUMULATION_LEVEL READ_GROUP \
+            2> {log}"""
+
 rule callpeaks:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
