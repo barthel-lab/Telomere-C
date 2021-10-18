@@ -45,6 +45,20 @@ adapters = ['FtFb','FtRb','RtFb','RtRb','unknown']
 adapters_comb = list(itertools.product(adapters, repeat=2))
 adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
 
+def map_adapter_status_str(i):
+    if i == 0:
+        return 'known'
+    elif i == 1:
+        return 'semi'
+    elif i == 2:
+        return 'unknown'
+    return ''
+
+adapter_status_count = [x.count('unknown') for x in adapters_comb]
+adapter_status_str = list(map(map_adapter_status_str, adapter_status_count))
+
+adapter_to_status = dict(zip(adapters_comb_str, adapter_status_str))
+
 # For testing
 #adapters_comb_str = ['FtFb-FtFb','FtFb-FtRb']
 
@@ -88,9 +102,8 @@ rule fq2ubam:
         "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam"
     params:
         RGID = "{adapt}",
-#        RGID = "{adapt}",
         RGPL = platform,
-        RGPU = unit,
+        RGPU = lambda wildcards: adapter_to_status[wildcards.adapt],
         RGLB = lib,
         RGDT = date,
         RGSM = Sname,
