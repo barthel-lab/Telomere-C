@@ -182,6 +182,62 @@ rule clipreads:
             --output-statistics {output.stats} \
             > {log} 2>&1"""
 
+# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+# ## Run FASTQC on pre-clipped 
+# ## URL: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+rule fastqc_preclip:
+    input:
+        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam" #"results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{readgroup}.unaligned.bam"
+    output:
+        "results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.fastqc_preclip.html"
+    params:
+        dir = "results/align/fastqc_preclip/{aliquot_barcode}"
+    log:
+        "logs/align/fastqc_preclip/{aliquot_barcode}.{adapt}.log"
+    benchmark:
+        "benchmarks/align/fastqc_preclip/{aliquot_barcode}.{adapt}.txt"
+    message:
+        "Running FASTQC (pre-clipping)\n"
+        "Sample: {wildcards.aliquot_barcode}\n"
+        "Index permutation: {wildcards.adapt}"
+    shell:
+        "fastqc \
+            --extract \
+            -o {params.dir} \
+            -f bam \
+            {input} \
+            > {log} 2>&1"
+
+# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+# ## Run FASTQC on post-clipped 
+# ## URL: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
+rule fastqc_posclip:
+    input:
+        "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam"
+    output:
+        "results/align/fastqc_posclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.fastqc_posclip.html"
+    params:
+        dir = "results/align/fastqc_posclip/{aliquot_barcode}"
+    log:
+        "logs/align/fastqc_posclip/{aliquot_barcode}.{adapt}.log"
+    benchmark:
+        "benchmarks/align/fastqc_posclip/{aliquot_barcode}.{adapt}.txt"
+    message:
+        "Running FASTQC (post-clipping)\n"
+        "Sample: {wildcards.aliquot_barcode}\n"
+        "Index permutation: {wildcards.adapt}"
+    shell:
+        "fastqc \
+            --extract \
+            -o {params.dir} \
+            -f bam \
+            {input} \
+            > {log} 2>&1"
+
 rule samtofastq_bwa_mergebamalignment:
     input:
         bam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
