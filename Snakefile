@@ -218,6 +218,16 @@ rule samtofastq_bwa_mergebamalignment:
             --TMP_DIR Temp \
             > {log} 2>&1"""
 
+rule linkerQC:
+    input:
+        expand("results/align/clipreads/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.clipreads.metrics.txt",adapt = adapters_comb_str)
+    output:
+        "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt"
+    conda:
+        "envs/r-tidyverse.yaml"
+    script:
+        "scripts/LinkerQC.R"
+
 rule markduplicates:
     input:
         expand("results/align/bwa/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.aln.bam", adapt = adapters_comb_str)
@@ -459,6 +469,6 @@ rule all:
        expand("results/align/bedtools/{name}.counts.gc.bed",name=Sname),
        expand("results/align/samdump/{sra_out}.bam",sra_out=SRAID),
        expand("results/align/bedtools/{sra_out}.counts.rna.gc.bed",sra_out=SRAID),
-       expand("results/align/bedtools/{sra_out}.counts.rna.gc.gencode.bed",sra_out=SRAID)
-
+       expand("results/align/bedtools/{sra_out}.counts.rna.gc.gencode.bed",sra_out=SRAID),
+       expand("results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt",aliquot_barcode=Sname)
 ## END ##
