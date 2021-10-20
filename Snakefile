@@ -189,9 +189,10 @@ rule clipreads:
 
 rule fastqc_preclip:
     input:
-        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam" #"results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{readgroup}.unaligned.bam"
+        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam" 
+        #"results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{readgroup}.unaligned.bam"
     output:
-        "results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.fastqc_preclip.html"
+        "results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned_fastqc.html"
     params:
         dir = "results/align/fastqc_preclip/{aliquot_barcode}"
     log:
@@ -202,6 +203,8 @@ rule fastqc_preclip:
         "Running FASTQC (pre-clipping)\n"
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
+    conda:
+        "envs/fastqc.yaml"
     shell:
         "fastqc \
             --extract \
@@ -219,7 +222,7 @@ rule fastqc_posclip:
     input:
         "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam"
     output:
-        "results/align/fastqc_posclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.fastqc_posclip.html"
+        "results/align/fastqc_posclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads_fastqc.html"
     params:
         dir = "results/align/fastqc_posclip/{aliquot_barcode}"
     log:
@@ -230,6 +233,8 @@ rule fastqc_posclip:
         "Running FASTQC (post-clipping)\n"
         "Sample: {wildcards.aliquot_barcode}\n"
         "Index permutation: {wildcards.adapt}"
+    conda:
+        "envs/fastqc.yaml"
     shell:
         "fastqc \
             --extract \
@@ -333,31 +338,10 @@ rule markduplicates:
             --MAX_RECORDS_IN_RAM {params.max_records} \
             > {log} 2>&1"""
 
-rule wgsmetrics:
-    input:
-        bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
-        ref = "/projects/verhaak-lab/GLASS-NF/references/GRCh37/human_g1k_v37_decoy.fasta"
-    output:
-        "results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
-    log:
-        "logs/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.log"
-    benchmark:
-        "benchmarks/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
-    message:
-        "Computing WGS Metrics\n"
-        "Sample: {wildcards.aliquot_barcode}"
-    shell:
-        "gatk --java-options -Xmx6g CollectWgsMetrics \
-            -R {input.ref} \
-            -I {input.bam} \
-            -O {output} \
-            --USE_FAST_ALGORITHM false \
-            > {log} 2>&1"
-
 rule alignmetrics:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
-        ref = "/projects/verhaak-lab/GLASS-NF/references/GRCh37/human_g1k_v37_decoy.fasta"
+        ref = ref_fasta 
     output:
         "results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt"
     log:
@@ -367,6 +351,8 @@ rule alignmetrics:
     message:
         "Computing Alignment Summary Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/gatk4.yaml"
     shell:
         "gatk --java-options -Xmx6g CollectAlignmentSummaryMetrics \
             -R {input.ref} \
@@ -378,7 +364,7 @@ rule alignmetrics:
 rule multiplemetrics:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
-        ref = "/projects/verhaak-lab/GLASS-NF/references/GRCh37/human_g1k_v37_decoy.fasta"
+        ref = ref_fasta
     output:
         "results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics"
     log:
@@ -388,6 +374,8 @@ rule multiplemetrics:
     message:
         "Computing Multiple Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/gatk4.yaml"
     shell:
         "gatk --java-options -Xmx6g CollectMultipleMetrics \
             -R {input.ref} \
@@ -409,6 +397,8 @@ rule collectinsertsizemetrics:
     message:
         "Collect Insert Size Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/gatk4.yaml"
     shell:"""
         gatk CollectInsertSizeMetrics \
             -I {input} \
@@ -420,6 +410,24 @@ rule collectinsertsizemetrics:
             --METRIC_ACCUMULATION_LEVEL LIBRARY \
             --METRIC_ACCUMULATION_LEVEL READ_GROUP \
             2> {log}"""
+
+rule telseq:
+    input:
+        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
+    output:
+        "results/align/telseq/{aliquot_barcode}.telseq.txt"
+    log:
+        "logs/align/telseq/{aliquot_barcode}.log"
+    benchmark:
+        "benchmarks/align/telseq/{aliquot_barcode}.txt"
+    message:
+        "Quantification of telomere sequences using TelSeq\n"
+        "Sample: {wildcards.aliquot_barcode}"
+    conda:
+        "envs/telseq.yaml"
+    shell:"""
+        telseq -r 151 -k 7 -o {output} {input} \
+            > {log} 2>&1"""
 
 rule callpeaks:
     input:
@@ -452,23 +460,29 @@ rule callpeaks:
             -q 0.01 \
             > {log} 2>&1"""
 
-rule telseq:
+rule wgsmetrics:
     input:
-        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
+        bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        ref = ref_fasta 
     output:
-        "results/align/telseq/{aliquot_barcode}.telseq.txt"
+        "results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
     log:
-        "logs/align/telseq/{aliquot_barcode}.log"
+        "logs/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.log"
     benchmark:
-        "benchmarks/align/telseq/{aliquot_barcode}.txt"
+        "benchmarks/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
     message:
-        "Quantification of telomere sequences using TelSeq\n"
+        "Computing WGS Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
     conda:
-        "envs/telseq.yaml"
-    shell:"""
-        telseq -r 151 -k 7 -o {output} {input} \
-            > {log} 2>&1"""
+        "envs/gatk4.yaml"
+    shell:
+        "gatk --java-options -Xmx6g CollectWgsMetrics \
+            -R {input.ref} \
+            -I {input.bam} \
+            -O {output} \
+            --USE_FAST_ALGORITHM false \
+            > {log} 2>&1"
+
 
 rule bedtools_count:
     input:
@@ -627,5 +641,12 @@ rule all:
        expand("results/align/samdump/{sra_out}.bam",sra_out=SRAID),
        expand("results/align/bedtools/{sra_out}.counts.rna.gc.bed",sra_out=SRAID),
        expand("results/align/bedtools/{sra_out}.counts.rna.gc.gencode.bed",sra_out=SRAID),
-       expand("results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt",aliquot_barcode=Sname)
+       expand("results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt",aliquot_barcode=Sname),
+       expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned_fastqc.html",aliquot_barcode=Sname,adapt=adapters_comb_str),
+       expand("results/align/fastqc_posclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads_fastqc.html",aliquot_barcode=Sname,adapt=adapters_comb_str),
+       expand("results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt",aliquot_barcode=Sname),
+       expand("results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt",aliquot_barcode=Sname),
+       expand("results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics",aliquot_barcode=Sname),
+       expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.txt",aliquot_barcode=Sname),
+       expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf",aliquot_barcode=Sname)
 ## END ##
