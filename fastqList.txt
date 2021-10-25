@@ -1,0 +1,2 @@
+A2780	/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz	/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
+SW13-post2	/labs/barthel/Telo-C/data/fastq/SW13-post_2_GT21-13127_GACCTGAA-TTGGTGAG_S2_R1_001.fastq.gz	/labs/barthel/Telo-C/data/fastq/SW13-post_2_GT21-13127_GACCTGAA-TTGGTGAG_S2_R2_001.fastq.gz

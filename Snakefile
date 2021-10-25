@@ -8,10 +8,6 @@
 #cutadapt -e 0.07 --no-indels -a file:data/ref/telomerec.cutadapt2.fasta -A file:data/ref/telomerec.cutadapt2.fasta -o sandbox2/{name1}-{name2}.1.fastq.gz -p sandbox2/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
 
 #==| Start of Configure |==#
-# Sample name
-Sname = "A2780"
-input_read1= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
-input_read2= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
 # Reference genome (Make sure coresponding index files are in the same director)
 ref_fasta="/labs/barthel/references/CHM13/chm13.draft_v1.1.fasta"
 # sra refence genome
@@ -38,6 +34,15 @@ ADPT = "data/telomerec.cutadapt.fasta"
 # Telomeric clip reads
 CLIP = "data/telomerec.clipreads.fasta"
 #==| END of Configure|==#
+
+## Define sample name and input fastq files from table
+Sname = [x.split('\t')[0] for x in open("fastqList.txt").read().splitlines()]
+
+input_read1= [x.split('\t')[1] for x in open("fastqList.txt").read().splitlines()]
+input_read2= [x.split('\t')[2] for x in open("fastqList.txt").read().splitlines()] 
+
+R1Dict=dict(zip(Sname,input_read1))
+R2Dict=dict(zip(Sname,input_read2))
 
 ## Define adapter combinations
 import itertools
@@ -67,15 +72,16 @@ adapter_to_status = dict(zip(adapters_comb_str, adapter_status_str))
 ## This means that the adapters are fixed to the 5' end
 rule cutadapt:
     input:
-        R1=input_read1,
-        R2=input_read2,
         adapters = ADPT
     output:
         R1 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.1.fastq.gz", adapt = adapters_comb_str),
         R2 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.2.fastq.gz", adapt = adapters_comb_str)
     params:
         o = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.1.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode),
-        p = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.2.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode)
+
+        p = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.2.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode),
+        IN_R1 = lambda wildcards: R1Dict[wildcards.aliquot_barcode],
+        IN_R2 = lambda wildcards: R2Dict[wildcards.aliquot_barcode]
     log:
         "logs/align/cutadapt/{aliquot_barcode}.log"
     benchmark:
@@ -91,7 +97,7 @@ rule cutadapt:
             -G file:{input.adapters} \
             -o {params.o} \
             -p {params.p} \
-            {input.R1} {input.R2} \
+            {params.IN_R1} {params.IN_R2} \
             > {log} 2>&1"""
 
 rule fq2ubam:
