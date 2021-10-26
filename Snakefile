@@ -35,14 +35,10 @@ ADPT = "data/telomerec.cutadapt.fasta"
 CLIP = "data/telomerec.clipreads.fasta"
 #==| END of Configure|==#
 
-## Define sample name and input fastq files from table
-Sname = [x.split('\t')[0] for x in open("fastqList.txt").read().splitlines()]
-
-input_read1= [x.split('\t')[1] for x in open("fastqList.txt").read().splitlines()]
-input_read2= [x.split('\t')[2] for x in open("fastqList.txt").read().splitlines()] 
-
-R1Dict=dict(zip(Sname,input_read1))
-R2Dict=dict(zip(Sname,input_read2))
+## Read sample name and input fastq files from table
+import pandas as pd
+fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1","R2"])
+fastqls.index = Sname =fastqls['name']
 
 ## Define adapter combinations
 import itertools
@@ -72,16 +68,15 @@ adapter_to_status = dict(zip(adapters_comb_str, adapter_status_str))
 ## This means that the adapters are fixed to the 5' end
 rule cutadapt:
     input:
+        R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1],
+        R2 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][2],
         adapters = ADPT
     output:
         R1 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.1.fastq.gz", adapt = adapters_comb_str),
         R2 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.2.fastq.gz", adapt = adapters_comb_str)
     params:
         o = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.1.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode),
-
         p = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.2.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode),
-        IN_R1 = lambda wildcards: R1Dict[wildcards.aliquot_barcode],
-        IN_R2 = lambda wildcards: R2Dict[wildcards.aliquot_barcode]
     log:
         "logs/align/cutadapt/{aliquot_barcode}.log"
     benchmark:
@@ -97,7 +92,7 @@ rule cutadapt:
             -G file:{input.adapters} \
             -o {params.o} \
             -p {params.p} \
-            {params.IN_R1} {params.IN_R2} \
+            {input.R1} {input.R2} \
             > {log} 2>&1"""
 
 rule fq2ubam:
