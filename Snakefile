@@ -77,7 +77,7 @@ rule cutadapt:
         R2 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.2.fastq.gz", adapt = adapters_comb_str)
     params:
         o = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.1.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode),
-        p = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.2.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode),
+        p = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.2.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode)
     log:
         "logs/align/cutadapt/{aliquot_barcode}.log"
     benchmark:
