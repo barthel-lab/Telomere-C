@@ -38,7 +38,8 @@ CLIP = "data/telomerec.clipreads.fasta"
 ## Read sample name and input fastq files from table
 import pandas as pd
 fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1","R2"])
-fastqls.index = Sname =fastqls['name']
+fastqls.index = fastqls['name']
+Sname = pd.Series(fastqls['name'])
 
 ## Define adapter combinations
 import itertools
@@ -107,7 +108,7 @@ rule fq2ubam:
         RGPU = lambda wildcards: adapter_to_status[wildcards.adapt],
         RGLB = lib,
         RGDT = date,
-        RGSM = Sname,
+        RGSM = lambda wildcards: wildcards.aliquot_barcode,
         RGCN = center
     log:
         "logs/align/fq2ubam/{aliquot_barcode}.{adapt}.log"
