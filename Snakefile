@@ -8,10 +8,6 @@
 #cutadapt -e 0.07 --no-indels -a file:data/ref/telomerec.cutadapt2.fasta -A file:data/ref/telomerec.cutadapt2.fasta -o sandbox2/{name1}-{name2}.1.fastq.gz -p sandbox2/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
 
 #==| Start of Configure |==#
-# Sample name
-Sname = "A2780"
-input_read1= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz"
-input_read2= "/labs/barthel/Telo-C/data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz"
 # Reference genome (Make sure coresponding index files are in the same director)
 ref_fasta="/labs/barthel/references/CHM13/chm13.draft_v1.1.fasta"
 # sra refence genome
@@ -38,6 +34,12 @@ ADPT = "data/telomerec.cutadapt.fasta"
 # Telomeric clip reads
 CLIP = "data/telomerec.clipreads.fasta"
 #==| END of Configure|==#
+
+## Read sample name and input fastq files from table
+import pandas as pd
+fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1","R2"])
+fastqls.index = fastqls['name']
+Sname = pd.Series(fastqls['name'])
 
 ## Define adapter combinations
 import itertools
@@ -67,8 +69,8 @@ adapter_to_status = dict(zip(adapters_comb_str, adapter_status_str))
 ## This means that the adapters are fixed to the 5' end
 rule cutadapt:
     input:
-        R1=input_read1,
-        R2=input_read2,
+        R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1],
+        R2 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][2],
         adapters = ADPT
     output:
         R1 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.1.fastq.gz", adapt = adapters_comb_str),
@@ -106,7 +108,7 @@ rule fq2ubam:
         RGPU = lambda wildcards: adapter_to_status[wildcards.adapt],
         RGLB = lib,
         RGDT = date,
-        RGSM = Sname,
+        RGSM = lambda wildcards: wildcards.aliquot_barcode,
         RGCN = center
     log:
         "logs/align/fq2ubam/{aliquot_barcode}.{adapt}.log"
