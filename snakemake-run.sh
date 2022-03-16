@@ -9,7 +9,7 @@ CONFIGFILE="conf/config.yaml"
 
 # This command use --profile argument
 
-snakemake --use-conda --jobs 500 -k --profile slurm_profile -s Snakefile --verbose --cluster-config "${CLUSTRCONF}" --configfile "${CONFIGFILE}" --stats "${WORKDIR}"/logs/snakemake_stats.json all |& tee -a "${WORKDIR}"/logs/run_snakemake_"$TSTAMP".log
+snakemake --jobs 500 -k --profile slurm_profile -s Snakefile --verbose --cluster-config "${CLUSTRCONF}" --configfile "${CONFIGFILE}" --stats "${WORKDIR}"/logs/snakemake_stats.json all |& tee -a "${WORKDIR}"/logs/run_snakemake_"$TSTAMP".log
 
 #snakemake --jobs 500 -k --profile slurm_profile -s Snakefile --verbose --cluster-config "${CLUSTRCONF}" --configfile "${CONFIGFILE}" --stats "${WORKDIR}"/logs/snakemake_stats.json all |& tee -a "${WORKDIR}"/logs/run_snakemake_"$TSTAMP".log
 

@@ -30,7 +30,7 @@ date = "20200321"
 center = "JAX"
 SRAID = "SRR8616019"
 # Telomeric adapter
-ADPT = "data/telomerec.cutadapt.fasta"
+ADPT = "data/All_telomerec.cutadapt.fasta"
 # Telomeric clip reads
 CLIP = "data/telomerec.clipreads.fasta"
 #==| END of Configure|==#
@@ -43,7 +43,7 @@ Sname = pd.Series(fastqls['name'])
 
 ## Define adapter combinations
 import itertools
-adapters = ['FtFb','FtRb','RtFb','RtRb','unknown']
+adapters = ['Telo','unknown']
 adapters_comb = list(itertools.product(adapters, repeat=2))
 adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
 
@@ -434,7 +434,7 @@ rule telseq:
 rule callpeaks:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
-        rg = opt_rg 
+        rg = opt_rg
     output:
         filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
         peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.xls"
@@ -450,7 +450,7 @@ rule callpeaks:
     conda:
         "envs/macs2.yaml"
     shell:"""
-         samtools view -R {input.rg} -b -q 30 {input.bam} > {output.filtered_bam}; \
+         samtools view -b -q 30 {input.bam} > {output.filtered_bam}; \
          samtools index {output.filtered_bam}; \
          echo {wildcards.aliquot_barcode}; \
          macs2 callpeak \
@@ -650,5 +650,5 @@ rule all:
        expand("results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt",aliquot_barcode=Sname),
        expand("results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics",aliquot_barcode=Sname),
        expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.txt",aliquot_barcode=Sname),
-       expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf",aliquot_barcode=Sname)
+       expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf",aliquot_barcode=Sname),
 ## END ##
