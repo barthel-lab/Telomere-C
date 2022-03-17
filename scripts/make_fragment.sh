@@ -23,13 +23,13 @@ samtools view -b -N ${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.readNames -o ${OUT
 samtools view -b -F 16 -r 'Telo-unknown' -r 'unknown-Telo' ${IN}|bedtools intersect -a stdin -b ${RE_bed} -wa|samtools view|awk '$10 ~ /^CT/ {print $1}'|sort|uniq > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.readNames"
 samtools view -b -N ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.readNames -o ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.bam ${IN}
 
-# Extend L-end forward read by max fragment size and write into bed file
+# Extend L-end forward read by max fragment size and write into bed file. Flag 1040 = 16 + 1024(PCR duplicats)
 samtools view -b -F 1040 ${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.bam|bedtools bamtobed -i stdin|awk -v size=${fSize} '{print $1 "\t" $2 "\t" $2+size}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.Fext.bed"
 
-# Get R-end reverse reads and write as bed file
+# Get R-end reverse reads and write as bed file. Flag 1024(PCR duplicats)
 samtools view -b -f 16 -F 1024 ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.bam|bedtools bamtobed -i stdin|awk '{print $1 "\t" $2 "\t" $3}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.Rev.bed"
 
-# Fragment assembling. start: L-end start coordinate, end: R-end end coordinate
+# Fragment assembling. start: L-end start coordinate, end: R-end end coordinate. By definition, fragment size($6-$2) shold be larger than 300
 bedtools intersect -a  ${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.Fext.bed -b  ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.Rev.bed -wa -wb|awk '$6-$2>300 {print $1 "\t" $2 "\t" $6}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.fragments.bed"
 
 
