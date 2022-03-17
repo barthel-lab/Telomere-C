@@ -24,13 +24,13 @@ samtools view -b -F 16 -r 'Telo-unknown' -r 'unknown-Telo' ${IN}|bedtools inters
 samtools view -b -N ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.readNames -o ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.bam ${IN}
 
 # Extend L-end forward read by max fragment size and write into bed file
-samtools view -b -F 16 ${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.bam|bedtools bamtobed -i stdin|awk -v size=${fSize} '{print $1 "\t" $2 "\t" $2+size}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.Fext.bed"
+samtools view -b -F 1040 ${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.bam|bedtools bamtobed -i stdin|awk -v size=${fSize} '{print $1 "\t" $2 "\t" $2+size}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.Fext.bed"
 
 # Get R-end reverse reads and write as bed file
-samtools view -b -f 16 ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.bam|bedtools bamtobed -i stdin|awk '{print $1 "\t" $2 "\t" $3}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.Rev.bed"
+samtools view -b -f 16 -F 1024 ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.bam|bedtools bamtobed -i stdin|awk '{print $1 "\t" $2 "\t" $3}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.Rev.bed"
 
 # Fragment assembling. start: L-end start coordinate, end: R-end end coordinate
-bedtools intersect -a  ${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.Fext.bed -b  ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.Rev.bed -wa -wb|awk '{print $1 "\t" $2 "\t" $6}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.fragments.bed"
+bedtools intersect -a  ${OUT_DIR}/${Sname}.realn.mdup.MQ30.L-end.Fext.bed -b  ${OUT_DIR}/${Sname}.realn.mdup.MQ30.R-end.Rev.bed -wa -wb|awk '$6-$2>300 {print $1 "\t" $2 "\t" $6}' > "${OUT_DIR}/${Sname}.realn.mdup.MQ30.fragments.bed"
 
 
 # Generate metrics
