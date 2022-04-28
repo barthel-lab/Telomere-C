@@ -9,7 +9,7 @@
 
 #==| Start of Configure |==#
 # Reference genome (Make sure coresponding index files are in the same director)
-ref_fasta="/labs/barthel/references/CHM13/chm13.draft_v1.1.fasta"
+ref_fasta="/labs/barthel/references/CHM13v2/chm13v2.0.fasta"
 # sra refence genome
 sra_ref_fasta="/labs/barthel/references/GRCh37/human_g1k_v37_decoy.fasta"
 # sra refence genome annoation 
@@ -93,6 +93,7 @@ rule cutadapt:
             -G file:{input.adapters} \
             -o {params.o} \
             -p {params.p} \
+            -m 1 \
             {input.R1} {input.R2} \
             > {log} 2>&1"""
 
