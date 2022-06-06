@@ -30,9 +30,9 @@ date = "20200321"
 center = "JAX"
 SRAID = "SRR8616019"
 # Telomeric adapter
-ADPT = "data/All_telomerec.cutadapt.fasta"
+ADPT = "data/telomerec-Tg.cutadapt.fasta"
 # Telomeric clip reads
-CLIP = "data/telomerec.clipreads.fasta"
+CLIP = "data/telomerec-Tg.clipreads.fasta"
 #==| END of Configure|==#
 
 ## Read sample name and input fastq files from table
@@ -43,7 +43,7 @@ Sname = pd.Series(fastqls['name'])
 
 ## Define adapter combinations
 import itertools
-adapters = ['Telo','unknown']
+adapters = ['F-tel','R-tel','Tg1','Tg2','unknown']
 adapters_comb = list(itertools.product(adapters, repeat=2))
 adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
 
