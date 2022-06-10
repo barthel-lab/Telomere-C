@@ -1,0 +1,57 @@
+mkdir -p results/align/markduplicates
+
+aliquot_barcode="A2780-F-lib"
+
+output_bam="results/align/markduplicates/${aliquot_barcode}.realn.mdup.bam"
+output_metrics="results/align/markduplicates/${aliquot_barcode}.metrics.txt"
+
+gatk --java-options -Xmx6g MarkDuplicates \
+--INPUT results/align/bwa/${aliquot_barcode}/${aliquot_barcode}.Tg2-F-tel.aln.bam \
+--INPUT results/align/bwa/${aliquot_barcode}/${aliquot_barcode}.F-tel-Tg2.aln.bam \
+--OUTPUT ${output_bam} \
+--METRICS_FILE ${output_metrics} \
+--CREATE_INDEX true \
+--TMP_DIR Temp \
+--MAX_RECORDS_IN_RAM 6000000
+
+aliquot_barcode="A2780-NF-lib"
+
+output_bam="results/align/markduplicates/${aliquot_barcode}.realn.mdup.bam"
+output_metrics="results/align/markduplicates/${aliquot_barcode}.metrics.txt"
+
+gatk --java-options -Xmx6g MarkDuplicates \
+--INPUT results/align/bwa/${aliquot_barcode}/${aliquot_barcode}.Tg2-F-tel.aln.bam \
+--OUTPUT ${output_bam} \
+--METRICS_FILE ${output_metrics} \
+--CREATE_INDEX true \
+--TMP_DIR Temp \
+--MAX_RECORDS_IN_RAM 6000000
+
+aliquot_barcode="A2780-NR-lib"
+
+output_bam="results/align/markduplicates/${aliquot_barcode}.realn.mdup.bam"
+output_metrics="results/align/markduplicates/${aliquot_barcode}.metrics.txt"
+
+gatk --java-options -Xmx6g MarkDuplicates \
+--INPUT results/align/bwa/${aliquot_barcode}/${aliquot_barcode}.Tg1-R-tel.aln.bam \
+--INPUT results/align/bwa/${aliquot_barcode}/${aliquot_barcode}.R-tel-Tg1.aln.bam \
+--OUTPUT ${output_bam} \
+--METRICS_FILE ${output_metrics} \
+--CREATE_INDEX true \
+--TMP_DIR Temp \
+--MAX_RECORDS_IN_RAM 6000000
+
+
+aliquot_barcode="A2780-R-lib"
+
+output_bam="results/align/markduplicates/${aliquot_barcode}.realn.mdup.bam"
+output_metrics="results/align/markduplicates/${aliquot_barcode}.metrics.txt"
+
+gatk --java-options -Xmx6g MarkDuplicates \
+--INPUT results/align/bwa/${aliquot_barcode}/${aliquot_barcode}.Tg1-R-tel.aln.bam \
+--INPUT results/align/bwa/${aliquot_barcode}/${aliquot_barcode}.R-tel-Tg1.aln.bam \
+--OUTPUT ${output_bam} \
+--METRICS_FILE ${output_metrics} \
+--CREATE_INDEX true \
+--TMP_DIR Temp \
+--MAX_RECORDS_IN_RAM 6000000
