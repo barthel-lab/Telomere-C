@@ -1,155 +1,52 @@
-##"results/align/cutadapt/A2780-GT20/A2780-GT20.unknown-unknown.1.fastq.gz"        
-
-## 5' 
-#cutadapt -e 0.07 --no-indels -g file:data/ref/telomerec.cutadapt.fasta -G file:data/ref/telomerec.cutadapt.fasta -o sandbox/{name1}-{name2}.1.fastq.gz -p sandbox/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
-#cutadapt -e 0.16 -g file:data/ref/telomerec.cutadapt.fasta -G file:data/ref/telomerec.cutadapt.fasta -o sandbox2/{name1}-{name2}.1.fastq.gz -p sandbox2/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
-
-## 3'
-#cutadapt -e 0.07 --no-indels -a file:data/ref/telomerec.cutadapt2.fasta -A file:data/ref/telomerec.cutadapt2.fasta -o sandbox2/{name1}-{name2}.1.fastq.gz -p sandbox2/{name1}-{name2}.2.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R1_001.fastq.gz data/fastq/A2780-0_5M_GT20-05417_CAATTAAC-CGAGATAT_S1_R2_001.fastq.gz
-
-#==| Start of Configure |==#
+# Configure
 # Reference genome (Make sure coresponding index files are in the same director)
 ref_fasta="/labs/barthel/references/CHM13v2/chm13v2.0.fasta"
-# sra refence genome
-sra_ref_fasta="/labs/barthel/references/GRCh37/human_g1k_v37_decoy.fasta"
-# sra refence genome annoation 
-sra_anno = "/labs/barthel/references/GRCh37/gencode.v19.flattened.captured.sorted.bed"
-# Bin file
-bin = "/labs/barthel/references/CHM13/chm13.draft_v1.1.100k.bed"
-sra_bin="data/b37.100Kb.windows.bed"
-# Optimal Group ID
-opt_rg= "data/optimalrg.txt"
-# Sequecning platform
-platform = "ILLUMINA"
-# Platform unit
-unit = "G5B3NM02838.1"
-# Library name
-lib = "BAR65723"
-date = "20200321"
-# Sequencing center
-center = "JAX"
-SRAID = "SRR8616019"
-# Telomeric adapter
-ADPT = "data/All_telomerec.cutadapt.fasta"
-# Telomeric clip reads
-CLIP = "data/telomerec.clipreads.fasta"
-#==| END of Configure|==#
 
-## Read sample name and input fastq files from table
+# Define sample names
 import pandas as pd
 fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1","R2"])
 fastqls.index = fastqls['name']
 Sname = pd.Series(fastqls['name'])
 
-## Define adapter combinations
-import itertools
-adapters = ['Telo','unknown']
-adapters_comb = list(itertools.product(adapters, repeat=2))
-adapters_comb_str = ["{}-{}".format(r1,r2) for (r1,r2) in adapters_comb]
-
-def map_adapter_status_str(i):
-    if i == 0:
-        return 'known'
-    elif i == 1:
-        return 'semi'
-    elif i == 2:
-        return 'unknown'
-    return ''
-
-adapter_status_count = [x.count('unknown') for x in adapters_comb]
-adapter_status_str = list(map(map_adapter_status_str, adapter_status_count))
-
-adapter_to_status = dict(zip(adapters_comb_str, adapter_status_str))
-
-# For testing
-#adapters_comb_str = ['FtFb-FtFb','FtFb-FtRb']
-
-## 5' adapters are assumed using -g and -G for read1 and read2, respectively
-## The adapters are anchored (indicated by the ^ in the fasta file)
-## This means that the adapters are fixed to the 5' end
-rule cutadapt:
-    input:
-        R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1],
-        R2 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][2],
-        adapters = ADPT
-    output:
-        R1 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.1.fastq.gz", adapt = adapters_comb_str),
-        R2 = expand("results/align/cutadapt/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.2.fastq.gz", adapt = adapters_comb_str)
-    params:
-        o = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.1.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode),
-        p = lambda wildcards: "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{{name1}}-{{name2}}.2.fastq.gz".format(aliquot_barcode = wildcards.aliquot_barcode)
-    log:
-        "logs/align/cutadapt/{aliquot_barcode}.log"
-    benchmark:
-        "benchmarks/align/cutadapt/{aliquot_barcode}.txt"
-    message:
-        "Splitting FASTQ file by telomere bridge linker adapter permutations\n"
-        "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/cutadapt.yaml"
-    shell:"""cutadapt \
-            -e 0.16 \
-            -g file:{input.adapters} \
-            -G file:{input.adapters} \
-            -o {params.o} \
-            -p {params.p} \
-            -m 1 \
-            {input.R1} {input.R2} \
-            > {log} 2>&1"""
-
+# Start
 rule fq2ubam:
     input:
-        R1 = "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{adapt}.1.fastq.gz",
-        R2 = "results/align/cutadapt/{aliquot_barcode}/{aliquot_barcode}.{adapt}.2.fastq.gz"
+        R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1],
+        R2 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][2]
     output:
-        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam"
+        "results/align/ubam/{{aliquot_barcode}}/{{aliquot_barcode}}.unaligned.bam"
     params:
-        RGID = "{adapt}",
-        RGPL = platform,
-        RGPU = lambda wildcards: adapter_to_status[wildcards.adapt],
-        RGLB = lib,
-        RGDT = date,
-        RGSM = lambda wildcards: wildcards.aliquot_barcode,
-        RGCN = center
+        RGCN = 'TGen'
     log:
-        "logs/align/fq2ubam/{aliquot_barcode}.{adapt}.log"
+        "logs/align/fq2ubam/{aliquot_barcode}.log"
     benchmark:
-        "benchmarks/align/fq2ubam/{aliquot_barcode}.{adapt}.txt"
+        "benchmarks/align/fq2ubam/{aliquot_barcode}.txt"
     message:
         "Converting FASTQ file to uBAM format\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-        "Index permutation: {wildcards.adapt}"
     conda:
         "envs/gatk4.yaml"
-# Since gatk4, no need '=' in the arument
     shell:"""gatk --java-options -Xmx6g FastqToSam \
             --FASTQ {input.R1} \
             --FASTQ2 {input.R2} \
             --OUTPUT {output} \
-            --READ_GROUP_NAME \"{params.RGID}\" \
-            --PLATFORM_UNIT \"{params.RGPU}\" \
-            --SAMPLE_NAME \"{params.RGSM}\" \
-            --PLATFORM \"{params.RGPL}\" \
-            --LIBRARY_NAME \"{params.RGLB}\" \
-            --SEQUENCING_CENTER \"{params.RGCN}\" \
             --SORT_ORDER queryname \
             --TMP_DIR Temp \
             > {log} 2>&1"""
 
 rule markadapters:
     input:
-        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam"
+        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.unaligned.bam"
     output:
-        bam = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.{adapt}.markadapters.bam",
-        metric = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.{adapt}.markadapters.metrics.txt"
+        bam = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.markadapters.bam",
+        metric = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.markadapters.metrics.txt"
     log: 
-        "logs/align/markadapters/{aliquot_barcode}.{adapt}.log"
+        "logs/align/markadapters/{aliquot_barcode}.log"
     benchmark:
-        "benchmarks/align/markadapters/{aliquot_barcode}.{adapt}.txt"
+        "benchmarks/align/markadapters/{aliquot_barcode}.txt"
     message:
         "Adding XT tags. This marks Illumina Adapters and allows them to be removed in later steps\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-        "Index permutation: {wildcards.adapt}"
     conda:
         "envs/gatk4.yaml"
     shell:
@@ -160,82 +57,21 @@ rule markadapters:
             --TMP_DIR Temp \
             > {log} 2>&1"""
 
-rule clipreads:
-    input:
-        ubam = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.{adapt}.markadapters.bam",
-        clipseq = CLIP
-    output:
-        ubam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
-        stats = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.metrics.txt"
-    log: 
-        "logs/align/markadapters/{aliquot_barcode}.{adapt}.log"
-    benchmark:
-        "benchmarks/align/markadapters/{aliquot_barcode}.{adapt}.txt"
-    message:
-        "Clip reads. This clips the mostly reverse-complement 4C PCR primers on the 3' end of fragments due to short inserts\n"
-        "Sample: {wildcards.aliquot_barcode}\n"
-        "Index permutation: {wildcards.adapt}"
-    conda:
-        "envs/gatk4.yaml"
-    shell:
-        """gatk --java-options -Xmx6g ClipReads \
-            -I {input.ubam} \
-            -O {output.ubam} \
-            --clip-sequences-file {input.clipseq} \
-            --output-statistics {output.stats} \
-            > {log} 2>&1"""
-
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
-# ## Run FASTQC on pre-clipped 
-# ## URL: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
-
+# QC
 rule fastqc_preclip:
     input:
-        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned.bam" 
-        #"results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.{readgroup}.unaligned.bam"
+        "results/align/ubam/{{aliquot_barcode}}/{{aliquot_barcode}}.unaligned.bam"
     output:
-        "results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned_fastqc.html"
+        "results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html"
     params:
         dir = "results/align/fastqc_preclip/{aliquot_barcode}"
     log:
-        "logs/align/fastqc_preclip/{aliquot_barcode}.{adapt}.log"
+        "logs/align/fastqc_preclip/{aliquot_barcode}.log"
     benchmark:
-        "benchmarks/align/fastqc_preclip/{aliquot_barcode}.{adapt}.txt"
+        "benchmarks/align/fastqc_preclip/{aliquot_barcode}.txt"
     message:
         "Running FASTQC (pre-clipping)\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-        "Index permutation: {wildcards.adapt}"
-    conda:
-        "envs/fastqc.yaml"
-    shell:
-        "fastqc \
-            --extract \
-            -o {params.dir} \
-            -f bam \
-            {input} \
-            > {log} 2>&1"
-
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
-# ## Run FASTQC on post-clipped 
-# ## URL: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
-
-rule fastqc_posclip:
-    input:
-        "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam"
-    output:
-        "results/align/fastqc_posclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads_fastqc.html"
-    params:
-        dir = "results/align/fastqc_posclip/{aliquot_barcode}"
-    log:
-        "logs/align/fastqc_posclip/{aliquot_barcode}.{adapt}.log"
-    benchmark:
-        "benchmarks/align/fastqc_posclip/{aliquot_barcode}.{adapt}.txt"
-    message:
-        "Running FASTQC (post-clipping)\n"
-        "Sample: {wildcards.aliquot_barcode}\n"
-        "Index permutation: {wildcards.adapt}"
     conda:
         "envs/fastqc.yaml"
     shell:
@@ -248,25 +84,24 @@ rule fastqc_posclip:
 
 rule samtofastq_bwa_mergebamalignment:
     input:
-        bam = "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads.bam",
+        bam = "results/align/ubam/{{aliquot_barcode}}/{{aliquot_barcode}}.unaligned.bam",
         ref = ref_fasta
     output:
-        bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.{adapt}.aln.bam",
-        bai = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.{adapt}.aln.bai"
+        bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam",
+        bai = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bai"
     log: 
-        "logs/align/samtofastq_bwa_mergebamalignment/{aliquot_barcode}.{adapt}.log"
+        "logs/align/samtofastq_bwa_mergebamalignment/{aliquot_barcode}.log"
     threads: 12
     resources:
          mem_mb=128728
     benchmark:
-        "benchmarks/align/revertsam/{aliquot_barcode}.{adapt}.txt"
+        "benchmarks/align/revertsam/{aliquot_barcode}.txt"
     message:
         "BAM to FASTQ --> BWA-MEM --> Merge BAM Alignment.\n"
         "The first step converts the reverted BAM to an interleaved FASTQ, removing Illumina "
         "adapters. The output is then piped to BWA-MEM and aligned. Aligned reads are merged "
         "with the original pre-aligned BAM to preserve original metadata, including read groups.\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-        "Index permutation: {wildcards.adapt}"
     conda:
         "envs/bwa.yaml"
     shell:
@@ -295,19 +130,9 @@ rule samtofastq_bwa_mergebamalignment:
             --TMP_DIR Temp \
             > {log} 2>&1"""
 
-rule linkerQC:
-    input:
-        expand("results/align/clipreads/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.clipreads.metrics.txt",adapt = adapters_comb_str)
-    output:
-        "results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt"
-    conda:
-        "envs/r-tidyverse.yaml"
-    script:
-        "scripts/LinkerQC.R"
-
 rule markduplicates:
     input:
-        expand("results/align/bwa/{{aliquot_barcode}}/{{aliquot_barcode}}.{adapt}.aln.bam", adapt = adapters_comb_str)
+       "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam"        
     output:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
         bai = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bai",
@@ -324,23 +149,16 @@ rule markduplicates:
         "Sample: {wildcards.aliquot_barcode}"
     conda:
         "envs/gatk4.yaml"
-# Snakemake dosn't accept 'Run:' in the rule, when using --use-conda option. So, I chagne 'Run:' to 'Shell:'.
-# Therefore, the python script "multi_input = " ".join(["--INPUT " + s for s in input])" was translated into shell
     shell:
-        """multi_input=""; \
-        arr=$(echo {input}); \
-        for i in ${{arr[@]}}; \
-        do multi_input=$(echo $multi_input $(echo --INPUT $i)); \
-        done; \
-        gatk --java-options -Xmx6g MarkDuplicates \
-            ${{multi_input}} \
+        """gatk --java-options -Xmx6g MarkDuplicates \
+            --INPUT {input} \
             --OUTPUT {output.bam} \
             --METRICS_FILE {output.metrics} \
             --CREATE_INDEX true \
             --TMP_DIR Temp \
             --MAX_RECORDS_IN_RAM {params.max_records} \
             > {log} 2>&1"""
-
+# QC
 rule alignmetrics:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
@@ -363,7 +181,7 @@ rule alignmetrics:
             -O {output} \
             --METRIC_ACCUMULATION_LEVEL READ_GROUP \
             > {log} 2>&1"
-
+# QC
 rule multiplemetrics:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
@@ -386,7 +204,7 @@ rule multiplemetrics:
             -O results/align/multiplemetrics/{wildcards.aliquot_barcode} \
             --METRIC_ACCUMULATION_LEVEL READ_GROUP \
             > {log} 2>&1"
-
+# QC
 rule collectinsertsizemetrics:
     input:
         "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
@@ -432,12 +250,29 @@ rule telseq:
         telseq -r 151 -k 7 -o {output} {input} \
             > {log} 2>&1"""
 
+rule MQ30:
+    input:
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
+    output:
+        filtered_bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        filtered_bai ="results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam.bai"
+    log:
+        "logs/align/MQ30/{aliquot_barcode}.log"
+    message:
+        "apply Q30 filter to bam files"
+    shell:"""
+        samtools view -b -q 30 {input.bam} > {output.filtered_bam}; \
+        samtools index {output.filtered_bam}"""
+
+# Analysis method
+# So far, I do macs2 by another script manually. ./scripts/macs2.sh <treated> <input>
+# I keep this rule to make sure the pipeline goes well
 rule callpeaks:
     input:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
-        rg = opt_rg
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        input = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
     output:
-        filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",        
         peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.xls"
     params:
         outdir = "results/align/macs2/{aliquot_barcode}/"
@@ -451,21 +286,44 @@ rule callpeaks:
     conda:
         "envs/macs2.yaml"
     shell:"""
-         samtools view -b -q 30 {input.bam} > {output.filtered_bam}; \
-         samtools index {output.filtered_bam}; \
-         echo {wildcards.aliquot_barcode}; \
-         macs2 callpeak \
-            -t {output.filtered_bam} \
-            --outdir {params.outdir} \
-            -g hs \
-            -n {wildcards.aliquot_barcode} \
-            -B \
-            -q 0.01 \
-            > {log} 2>&1"""
+        # macs2 callpeak \
+        #    -t {output.filtered_bam} \
+        #    --outdir {params.outdir} \
+        #    -g hs \
+        #    -n {wildcards.aliquot_barcode} \
+        #    -B \
+        #    -q 0.01 \
+        #    > {log} 2>&1
+        echo 'do nothing;"""
 
+# Analysis method
+rule bamCoverge:
+    input:
+        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
+    output:
+        "results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig"
+    params:
+        bin = 100,
+        normalization = "RPKM"
+    log:
+        "logs/align/bamCoverage/{aliquot_barcode}.log"
+    message:
+        "Normalize reads by RPKM and bin"
+    shell:"""bamCoverage \
+        -b {input} \
+        -o {output} \
+        -of bigwig \
+        --binSize {params.bin} \
+        --numberOfProcessors 10 \
+        --ignoreDuplicates \
+        --scaleFactor 1 \
+        --normalizeUsing {params.normalization} \
+        > {log} 2>&1"""
+
+# QC
 rule wgsmetrics:
     input:
-        bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
         ref = ref_fasta 
     output:
         "results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
@@ -486,170 +344,18 @@ rule wgsmetrics:
             --USE_FAST_ALGORITHM false \
             > {log} 2>&1"
 
-
-rule bedtools_count:
-    input:
-        bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",
-        windows = bin 
-    output:
-        "results/align/bedtools/{aliquot_barcode}.counts.bed"
-    log:
-        "logs/align/bedtools/{aliquot_barcode}.counts.log"
-    benchmark:
-        "benchmarks/align/bedtools/{aliquot_barcode}.counts.txt"
-    message:
-        "Count read coverage per bin\n"
-        "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/bedtools.yaml"
-    shell:"""
-        bedtools intersect -a {input.windows} \
-                   -b {input.bam} \
-                   -c -sorted \
-            > {output} \
-            2> {log}"""
-
-rule bedtools_gc:
-    input:
-        bed = "results/align/bedtools/{aliquot_barcode}.counts.bed",
-        fa = ref_fasta 
-    output:
-        "results/align/bedtools/{aliquot_barcode}.counts.gc.bed"
-    log:
-        "logs/align/bedtools/{aliquot_barcode}.counts.gc.log"
-    benchmark:
-        "benchmarks/align/bedtools/{aliquot_barcode}.counts.gc.txt"
-    message:
-        "Annotate bins by GC content\n"
-        "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/bedtools.yaml"
-    shell:"""
-        bedtools nuc -fi {input.fa} \
-             -bed {input.bed} \
-            | cut -f 1-4,6 \
-            > {output} \
-            2> {log}"""
-
-## For this step to work, one needs to install the SRA toolkit (sra-tools on conda)
-## We also need to setup the SRA environment and load it with keyfiles
-## See https://ncbi.github.io/sra-tools/install_config.html for instructions
-## The output base path needs to match the directory in SRA config (vdb-config -i)
-rule prefetch:
-    output:
-        "ncbi/public/sra/{sraid}.sra"
-    params:
-        sraid = SRAID 
-    log:
-        "logs/align/prefetch/{sraid}.log"
-    message:
-        "Downloading SRR file\n"
-        "SRA ID: {wildcards.sraid}"
-    conda:
-        "envs/sra-tools.yaml"
-    shell:"""
-        prefetch {params.sraid} \
-            > {log} 2>&1"""
-
-## SAM-dump (eg. convert SRR into SAM) downloaded file
-rule samdump:
-    input:
-# Use ln -s to creat soft link in the working director        
-        srr = "ncbi/public/sra/{sraid}.sra"
-    output:
-        sam = temp("results/align/samdump/{sraid}.sam"),
-        bam = "results/align/samdump/{sraid}.bam",
-        bai = "results/align/samdump/{sraid}.bam.bai"
-    log:
-        "logs/align/samdump/{sraid}.log"
-    message:
-        "Convert SRR file to BAM and create index\n"
-        "SRA ID: {wildcards.sraid}"
-    conda:
-        "envs/sra-tools.yaml"
-    shell:"""
-        sam-dump {input.srr} \
-            > {output.sam} \
-            2> {log};
-        samtools view -S -b {output.sam} > {output.bam} 2> {log};
-        samtools index {output.bam} > {log} 2>&1;"""
-
-## See https://www.biostars.org/p/92744/ for a short overview of steps
-## To get reads per bin
-rule bedtools_count_rna:
-    input:
-        bam = "results/align/samdump/{sraid}.bam",
-        windows = sra_bin
-    output:
-        "results/align/bedtools/{sraid}.counts.rna.bed"
-    log:
-        "logs/align/bedtools/{sraid}.counts.rna.log"
-    message:
-        "Count read coverage per bin for RNAseq\n"
-        "Sample: {wildcards.sraid}"
-    conda:
-        "envs/bedtools.yaml"
-    shell:"""
-        bedtools intersect -a {input.windows} \
-                   -b {input.bam} \
-                   -c -sorted \
-            > {output} \
-            2> {log}"""
-
-rule bedtools_gc_rna:
-    input:
-        bed = "results/align/bedtools/{sraid}.counts.rna.bed",
-        fa = sra_ref_fasta
-    output:
-        "results/align/bedtools/{sraid}.counts.rna.gc.bed"
-    log:
-        "logs/align/bedtools/{sraid}.counts.rna.gc.log"
-    message:
-        "Annotate bins by GC content\n"
-        "Sample: {wildcards.sraid}"
-    conda:
-        "envs/bedtools.yaml"
-    shell:"""
-        bedtools nuc -fi {input.fa} \
-             -bed {input.bed} \
-            | cut -f 1-4,6 \
-            > {output} \
-            2> {log}"""
-
-rule bedtools_gencode_rna:
-    input:
-        bed = "results/align/bedtools/{sraid}.counts.rna.gc.bed",
-        gtf = sra_anno
-    output:
-        "results/align/bedtools/{sraid}.counts.rna.gc.gencode.bed"
-    log:
-        "logs/align/bedtools/{sraid}.counts.rna.gc.gencode.log"
-    message:
-        "Annotate bins by overlap with Gencode GTF\n"
-        "Sample: {wildcards.sraid}"
-    conda:
-        "envs/bedtools.yaml"
-    shell:"""
-        bedtools annotate -i {input.bed} \
-            -files {input.gtf} \
-            > {output} \
-            2> {log}"""
-
-# get the value from the head: input config
+# Define QC output files of workflows
 rule all:
-    input: 
-       expand("results/align/macs2/{name}/{name}_peaks.xls",name=Sname),
-       expand("results/align/telseq/{name}.telseq.txt",name=Sname),
-       expand("results/align/bedtools/{name}.counts.gc.bed",name=Sname),
-       expand("results/align/samdump/{sra_out}.bam",sra_out=SRAID),
-       expand("results/align/bedtools/{sra_out}.counts.rna.gc.bed",sra_out=SRAID),
-       expand("results/align/bedtools/{sra_out}.counts.rna.gc.gencode.bed",sra_out=SRAID),
-       expand("results/align/clipreads/{aliquot_barcode}/{aliquot_barcode}.linkerQC.txt",aliquot_barcode=Sname),
-       expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.unaligned_fastqc.html",aliquot_barcode=Sname,adapt=adapters_comb_str),
-       expand("results/align/fastqc_posclip/{aliquot_barcode}/{aliquot_barcode}.{adapt}.clipreads_fastqc.html",aliquot_barcode=Sname,adapt=adapters_comb_str),
-       expand("results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt",aliquot_barcode=Sname),
-       expand("results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt",aliquot_barcode=Sname),
-       expand("results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics",aliquot_barcode=Sname),
-       expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.txt",aliquot_barcode=Sname),
-       expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf",aliquot_barcode=Sname)
+   input:
+        expand("results/align/macs2/{name}/{name}_peaks.xls",name=Sname),
+        expand("results/align/telseq/{name}.telseq.txt",name=Sname),
+        expand("results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig",aliquot_barcode=Sname),
+        expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html",aliquot_barcode=Sname),
+        expand("results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt",aliquot_barcode=Sname),
+        expand("results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt",aliquot_barcode=Sname),
+        expand("results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics",aliquot_barcode=Sname),
+        expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.txt",aliquot_barcode=Sname),
+        expand("results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf",aliquot_barcode=Sname)
+
+
 ## END ##
