@@ -1,5 +1,0 @@
-RtFb-FtRb
-FtRb-RtFb
-RtRb-FtFb
-FtFb-RtRb
-
