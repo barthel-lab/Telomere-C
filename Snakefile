@@ -58,7 +58,7 @@ rule markadapters:
             > {log} 2>&1"""
 
 # QC
-rule fastqc_preclip:
+rule fastqc:
     input:
         "results/align/ubam/{{aliquot_barcode}}/{{aliquot_barcode}}.unaligned.bam"
     output:
