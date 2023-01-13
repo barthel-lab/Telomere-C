@@ -14,9 +14,10 @@ rule fq2ubam:
         R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1],
         R2 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][2]
     output:
-        "results/align/ubam/{{aliquot_barcode}}/{{aliquot_barcode}}.unaligned.bam"
+        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.unaligned.bam"
     params:
-        RGCN = 'TGen'
+        RGCN = 'TGen',
+        RGSM = lambda wildcards: wildcards.aliquot_barcode
     log:
         "logs/align/fq2ubam/{aliquot_barcode}.log"
     benchmark:
@@ -30,6 +31,8 @@ rule fq2ubam:
             --FASTQ {input.R1} \
             --FASTQ2 {input.R2} \
             --OUTPUT {output} \
+            --SEQUENCING_CENTER \"{params.RGCN}\" \
+            --SAMPLE_NAME \"{params.RGSM}\" \
             --SORT_ORDER queryname \
             --TMP_DIR Temp \
             > {log} 2>&1"""
@@ -60,7 +63,7 @@ rule markadapters:
 # QC
 rule fastqc:
     input:
-        "results/align/ubam/{{aliquot_barcode}}/{{aliquot_barcode}}.unaligned.bam"
+        "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.unaligned.bam"
     output:
         "results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html"
     params:
@@ -84,7 +87,7 @@ rule fastqc:
 
 rule samtofastq_bwa_mergebamalignment:
     input:
-        bam = "results/align/ubam/{{aliquot_barcode}}/{{aliquot_barcode}}.unaligned.bam",
+        bam = "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.unaligned.bam",
         ref = ref_fasta
     output:
         bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam",
