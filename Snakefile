@@ -255,7 +255,8 @@ rule telseq:
 
 rule MQ30:
     input:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        blacklist = "/labs/barthel/references/CHM13v2/T2T.excluderanges.noTelo.bed"
     output:
         filtered_bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
         filtered_bai ="results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam.bai"
@@ -264,7 +265,8 @@ rule MQ30:
     message:
         "apply Q30 filter to bam files"
     shell:"""
-        samtools view -b -q 30 {input.bam} > {output.filtered_bam}; \
+        bedtools intersect -v -abam {input.bam} -b {input.blacklist} | \
+        samtools view -b -q 30 > {output.filtered_bam}; \
         samtools index {output.filtered_bam}"""
 
 # Analysis method
