@@ -253,7 +253,7 @@ rule telseq:
         telseq -r 151 -k 7 -o {output} {input} \
             > {log} 2>&1"""
 
-rule MQ30:
+rule MQ30_n_blacklist_filter:
     input:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
         blacklist = "/labs/barthel/references/CHM13v2/T2T.excluderanges.noTelo.bed"
