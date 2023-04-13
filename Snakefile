@@ -87,7 +87,7 @@ rule fastqc:
 
 rule samtofastq_bwa_mergebamalignment:
     input:
-        bam = "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.unaligned.bam",
+        bam = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.markadapters.bam",
         ref = ref_fasta
     output:
         bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam",
