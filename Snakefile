@@ -9,10 +9,42 @@ fastqls.index = fastqls['name']
 Sname = pd.Series(fastqls['name'])
 
 # Start
-rule fq2ubam:
+rule ExtractUmis:
     input:
         R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1],
         R2 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][2]
+    output:
+        f1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.1.fastq.gz",
+        f2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.2.fastq.gz"
+    log:
+        "logs/align/ExtractUmis/{aliquot_barcode}.pre.ExtractUmis.R1.log"
+    message:
+        "Extracting Umi information from fastq"
+    shell:"""
+             module add umi_tools/1.1.1
+             umi_tools extract -I {input.R1} --bc-pattern="^(?P<umi_1>.{{5}})(?P<discard_1>.{{2}}).*" \
+             --read2-in={input.R2} \
+             --stdout={output.f1} --read2-out={output.f2} \
+             --extract-method=regex > {log} 2>&1
+          """
+
+rule RemoveEmptyReads:
+    input:
+        f1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.1.fastq.gz",
+        f2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.2.fastq.gz"
+    output:
+        R1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.1.fastq.gz",
+        R2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.2.fastq.gz"
+    log:
+        "logs/align/ExtractUmis/{aliquot_barcode}.ExtractUmis.R1.log"
+    shell:"""
+             cutadapt -m 1 -o {output.R1} -p {output.R2} {input.f1} {input.f2};
+          """
+
+rule fq2ubam:
+    input:
+        R1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.1.fastq.gz",
+        R2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.2.fastq.gz"
     output:
         "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.unaligned.bam"
     params:
@@ -133,38 +165,42 @@ rule samtofastq_bwa_mergebamalignment:
             --TMP_DIR Temp \
             > {log} 2>&1"""
 
-rule markduplicates:
+rule UmiReadGroup:
     input:
-       "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam"        
+       "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam"
     output:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
-        bai = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bai",
-        metrics = "results/align/markduplicates/{aliquot_barcode}.metrics.txt"
-    params:
-        max_records = 6000000
+        bam = "results/align/UmiReadGroup/{aliquot_barcode}_mapped_grouped.bam",
+        groups = "results/align/UmiReadGroup/{aliquot_barcode}_mapped_grouped.txt",
+        sort = "results/align/UmiReadGroup/{aliquot_barcode}_sorted_mapped_grouped.bam"
     log:
-        "logs/align/markduplicates/{aliquot_barcode}.log"
-    benchmark:
-        "benchmarks/align/markduplicates/{aliquot_barcode}.txt"
-    message:
-        "Readgroup-specific BAM files are combined into a single BAM."
-        "Potential PCR duplicates are marked.\n"
-        "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/gatk4.yaml"
+        "logs/align/UmiReadGroup/{aliquot_barcode}_UMIs.mapped_grouped.log"
     shell:
-        """gatk --java-options -Xmx6g MarkDuplicates \
-            --INPUT {input} \
-            --OUTPUT {output.bam} \
-            --METRICS_FILE {output.metrics} \
-            --CREATE_INDEX true \
-            --TMP_DIR Temp \
-            --MAX_RECORDS_IN_RAM {params.max_records} \
-            > {log} 2>&1"""
+        """ module add umi_tools/1.1.1
+            umi_tools group -I {input} --paired --group-out={output.groups} \
+            --output-bam -S {output.bam} --umi-group-tag RX > {log} 2>&1
+            samtools sort {output.bam} -o {output.sort}
+            samtools index {output.sort}"""
+
+rule UmiDeDup:
+    input:
+        "results/align/UmiReadGroup/{aliquot_barcode}_sorted_mapped_grouped.bam"        
+    output:
+        dedup = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
+        log = "results/align/UmiDeDup/{aliquot_barcode}.UmiDeDup.log"
+    log:
+        "logs/align/UmiDeDup/{aliquot_barcode}.UmiDeDup.log"
+    params:
+        extra=r"'{aliquot_barcode}'"
+    shell:
+        """ module add umi_tools/1.1.1
+            umi_tools dedup -I {input} \
+            --log={output.log} \
+            --paired -S {output.dedup} --output-stats={params.extra} > {log} 2>&1"""
+
 # QC
 rule alignmetrics:
     input:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
         ref = ref_fasta 
     output:
         "results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt"
@@ -187,7 +223,7 @@ rule alignmetrics:
 # QC
 rule multiplemetrics:
     input:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
         ref = ref_fasta
     output:
         "results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics"
@@ -210,7 +246,7 @@ rule multiplemetrics:
 # QC
 rule collectinsertsizemetrics:
     input:
-        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
+        "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam"
     output:
         txt = "results/align/insertmetrics/{aliquot_barcode}.insertmetrics.txt",
         pdf = "results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf"
@@ -237,7 +273,7 @@ rule collectinsertsizemetrics:
 
 rule telseq:
     input:
-        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
+        "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam"
     output:
         "results/align/telseq/{aliquot_barcode}.telseq.txt"
     log:
@@ -255,11 +291,11 @@ rule telseq:
 
 rule MQ30_n_blacklist_filter:
     input:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
         blacklist = "/labs/barthel/references/CHM13v2/T2T.excluderanges.noTelo.bed"
     output:
-        filtered_bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
-        filtered_bai ="results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam.bai"
+        filtered_bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        filtered_bai ="results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam.bai"
     log:
         "logs/align/MQ30/{aliquot_barcode}.log"
     message:
@@ -274,8 +310,8 @@ rule MQ30_n_blacklist_filter:
 # I keep this rule to make sure the pipeline goes well
 rule callpeaks:
     input:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
-        input = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
+        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        input = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam"
     output:
         filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",        
         peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.xls"
@@ -304,7 +340,7 @@ rule callpeaks:
 # Analysis method
 rule bamCoverge:
     input:
-        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
+        "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam"
     output:
         "results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig"
     params:
@@ -328,7 +364,7 @@ rule bamCoverge:
 # QC
 rule wgsmetrics:
     input:
-        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam",
         ref = ref_fasta 
     output:
         "results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
