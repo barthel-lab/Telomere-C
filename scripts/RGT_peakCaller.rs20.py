@@ -10,9 +10,10 @@ import os
 # I/O 
 bamfile = sys.argv[1]
 bamfile_input = sys.argv[2]
-outdir = 'result/align/RGT_peakCall/'
+outdir = 'results/align/RGT_peakCall/'
 outtxt = outdir + os.path.basename(bamfile).replace('.bam','.run_peaks.rs20.bed')
 outbw =  outdir + os.path.basename(bamfile).replace('.bam','.run_signal.rs20.bw')
+os.mkdir(outdir)
 
 # Peak calling filters
 minRd = 20
