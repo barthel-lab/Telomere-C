@@ -8,6 +8,10 @@ fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1"
 fastqls.index = fastqls['name']
 Sname = pd.Series(fastqls['name'])
 
+# Extract common lib name 
+Sname2 = Sname.str.split('-').str[0]
+Sname2_unique = Sname2.drop_duplicates()
+
 # Start
 rule ExtractUmis:
     input:
@@ -306,36 +310,67 @@ rule MQ30_n_blacklist_filter:
         samtools index {output.filtered_bam}"""
 
 # Analysis method
-# So far, I do macs2 by another script manually. ./scripts/macs2.sh <treated> <input>
-# I keep this rule to make sure the pipeline goes well
+# RGT_peak caller
 rule callpeaks:
     input:
-        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam",
-        input = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam"
+        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam"
     output:
-        filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",        
-        peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.xls"
+        token = "results/align/RGT_peakCall/{aliquot_barcode}.RGT_peak_called.token",
+        token2 = "results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token2"
     params:
-        outdir = "results/align/macs2/{aliquot_barcode}/"
+        outdir = "results/align/RGT_peakCall/",
+        peak_caller="scripts/primary_peak_call.py"
     log:
-        "logs/align/macs2/{aliquot_barcode}.log"
+        "logs/align/RGT_peakCall/{aliquot_barcode}.log"
     benchmark:
-        "benchmarks/align/macs2/{aliquot_barcode}.txt"
+        "benchmarks/align/RGT_peakCall/{aliquot_barcode}.txt"
+    threads: 2
+    resources:
+         mem_mb=32768
     message:
-        "Calling peaks using MACS2.\n"
-        "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/macs2.yaml"
+        "Calling peaks using RGT_peakCall.\n"
     shell:"""
-        # macs2 callpeak \
-        #    -t {output.filtered_bam} \
-        #    --outdir {params.outdir} \
-        #    -g hs \
-        #    -n {wildcards.aliquot_barcode} \
-        #    -B \
-        #    -q 0.01 \
-        #    > {log} 2>&1
-        echo 'do nothing;"""
+    # Initiate var
+    input_bam="$(basename {input.bam})"
+    prefix="${{input_bam%%-*}}"
+    capture="results/align/UmiDeDup/${{prefix}}-capture.realn.mdup.MQ30.bam"
+    input="results/align/UmiDeDup/${{prefix}}-input.realn.mdup.MQ30.bam"
+    pri_peak_name=$(basename $capture | sed s/.bam/.run_peaks.bed/g)
+    trim_bed_name=$(echo $pri_peak_name | sed s/.bed/.trim.bed/g)
+    merge_bed_name=$(echo $pri_peak_name | sed s/.bed/.merge.bed/g)
+   
+    # Dev
+    echo ${{input_bam}} >> {log}
+    echo ${{prefix}}  >> {log}
+    echo ${{capture}}  >> {log}
+    echo ${{input}}  >> {log}
+    echo ${{pri_peak_name}}  >> {log}
+    echo ${{trim_bed_name}}  >> {log}
+    echo ${{merge_bed_name}}  >> {log}
+
+    token_file={params.outdir}/${{prefix}}.job.token
+    echo 0 > $token_file
+   
+    # Check if both capture and input are True.
+    if [[ -f "$capture" && -f "$input" && $(cat "$token_file") == "0" ]]; then
+      echo 1 > $token_file
+      # Primary peak calling and output BigWig
+      echo "Processing primary peak calling"
+      python {params.peak_caller} $capture $input
+
+      # Peak trimming and output merge.bed
+      echo "Outputing run_peak.merge.bed"
+      awk '{{if ($2<$3 && $1 != "chrM") print $0}}' {params.outdir}/${{pri_peak_name}} | sort -k1,1 -k2,2n > {params.outdir}/${{trim_bed_name}}
+      bedtools merge -d 100 -i  {params.outdir}/${{trim_bed_name}} | awk '{{print $1"\t"$2"\t"$3"\t"$1":"$2"-"$3}}' > {params.outdir}/${{merge_bed_name}}
+     
+      # Move intermediate file
+      mv {params.outdir}/${{trim_bed_name}} {params.outdir}/${{trim_bed_name}} {params.outdir}/intermediate/
+   fi
+
+    # When job done, give a token
+    touch {output.token}
+    touch {output.token2} 
+   """
 
 # Analysis method
 rule bamCoverge:
@@ -388,7 +423,8 @@ rule wgsmetrics:
 # Define QC output files of workflows
 rule all:
    input:
-        expand("results/align/macs2/{name}/{name}_peaks.xls",name=Sname),
+        expand("results/align/RGT_peakCall/{aliquot_barcode}.RGT_peak_called.token",aliquot_barcode=Sname),
+        expand("results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token2",aliquot_barcode=Sname),
         expand("results/align/telseq/{name}.telseq.txt",name=Sname),
         expand("results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig",aliquot_barcode=Sname),
         expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html",aliquot_barcode=Sname),
