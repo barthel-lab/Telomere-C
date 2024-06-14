@@ -1,5 +1,6 @@
 # Telomere-C
 Telomere interaction analysis
+![work flow](dag.svg)
 ---
 
 # To start:
