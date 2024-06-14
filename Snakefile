@@ -8,10 +8,6 @@ fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1"
 fastqls.index = fastqls['name']
 Sname = pd.Series(fastqls['name'])
 
-# Extract common lib name 
-Sname2 = Sname.str.split('-').str[0]
-Sname2_unique = Sname2.drop_duplicates()
-
 # Start
 rule ExtractUmis:
     input:
@@ -310,13 +306,13 @@ rule MQ30_n_blacklist_filter:
         samtools index {output.filtered_bam}"""
 
 # Analysis method
-# RGT_peak caller
+# RGT_peak caller. This rule takes capture.bam and input.bam as input; output peak.merge.bed and BigWig. 
+# To match the number of wildcard in the Snamake workflow, I assign {output.token} as the output, which is a empty file. The expected outputs were written in the Shell scripts. The other token "token_file={params.outdir}/.${{prefix}}.job.token" in the this rule is to prevent overwrite from capture.bam (or inpuat.bam), which have done the job by their partner.
 rule callpeaks:
     input:
         bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam"
     output:
-        token = "results/align/RGT_peakCall/{aliquot_barcode}.RGT_peak_called.token",
-        token2 = "results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token2"
+        token = "results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token"
     params:
         outdir = "results/align/RGT_peakCall/",
         peak_caller="scripts/primary_peak_call.py"
@@ -330,7 +326,7 @@ rule callpeaks:
     message:
         "Calling peaks using RGT_peakCall.\n"
     shell:"""
-    # Initiate var
+    # Initiate I/O
     input_bam="$(basename {input.bam})"
     prefix="${{input_bam%%-*}}"
     capture="results/align/UmiDeDup/${{prefix}}-capture.realn.mdup.MQ30.bam"
@@ -339,21 +335,13 @@ rule callpeaks:
     trim_bed_name=$(echo $pri_peak_name | sed s/.bed/.trim.bed/g)
     merge_bed_name=$(echo $pri_peak_name | sed s/.bed/.merge.bed/g)
    
-    # Dev
-    echo ${{input_bam}} >> {log}
-    echo ${{prefix}}  >> {log}
-    echo ${{capture}}  >> {log}
-    echo ${{input}}  >> {log}
-    echo ${{pri_peak_name}}  >> {log}
-    echo ${{trim_bed_name}}  >> {log}
-    echo ${{merge_bed_name}}  >> {log}
+    # This token is to prevent overwriting by either input.bam or capture.bam 
+    token_file={params.outdir}/.${{prefix}}.job.token
+    echo 1 >> $token_file
+    stat=$(awk '{{sum += $1}}END{{print sum}}' $token_file)
 
-    token_file={params.outdir}/${{prefix}}.job.token
-    echo 0 > $token_file
-   
-    # Check if both capture and input are True.
-    if [[ -f "$capture" && -f "$input" && $(cat "$token_file") == "0" ]]; then
-      echo 1 > $token_file
+    # Check if both capture and input are True, and the peak calling havn't not been performed yet)
+    if [[ -f "$capture" && -f "$input" && $(echo "$stat") -lt 2 ]]; then
       # Primary peak calling and output BigWig
       echo "Processing primary peak calling"
       python {params.peak_caller} $capture $input
@@ -364,12 +352,11 @@ rule callpeaks:
       bedtools merge -d 100 -i  {params.outdir}/${{trim_bed_name}} | awk '{{print $1"\t"$2"\t"$3"\t"$1":"$2"-"$3}}' > {params.outdir}/${{merge_bed_name}}
      
       # Move intermediate file
-      mv {params.outdir}/${{trim_bed_name}} {params.outdir}/${{trim_bed_name}} {params.outdir}/intermediate/
+      mv {params.outdir}/${{pri_peak_name}} {params.outdir}/${{trim_bed_name}} {params.outdir}/intermediate/
    fi
 
-    # When job done, give a token
+    # When job is done, give a token
     touch {output.token}
-    touch {output.token2} 
    """
 
 # Analysis method
@@ -423,8 +410,7 @@ rule wgsmetrics:
 # Define QC output files of workflows
 rule all:
    input:
-        expand("results/align/RGT_peakCall/{aliquot_barcode}.RGT_peak_called.token",aliquot_barcode=Sname),
-        expand("results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token2",aliquot_barcode=Sname),
+        expand("results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token",aliquot_barcode=Sname),
         expand("results/align/telseq/{name}.telseq.txt",name=Sname),
         expand("results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig",aliquot_barcode=Sname),
         expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html",aliquot_barcode=Sname),
