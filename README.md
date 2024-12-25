@@ -123,12 +123,15 @@ All Output files were stored in the subdirectory of `results/alig/`
 
 ## Main outputs
 deduplicated BAM: 
-`results/align/UmiDeDup/<Sampe Name>-input.realn.mdup.MQ30.bam`
-`results/align/UmiDeDup/<Sampe Name>-capture.realn.mdup.MQ30.bam`
+- `results/align/UmiDeDup/<Sampe Name>-input.realn.mdup.MQ30.bam`
+- `results/align/UmiDeDup/<Sampe Name>-capture.realn.mdup.MQ30.bam`
+
 unnormalized BigWig:
-`results/align/bamCoverage/<Sampe Name>-input.realn.mdup.MQ30.norm.100bp.bigwig`
-`results/align/bamCoverage/<Sampe Name>-capture.realn.mdup.MQ30.norm.100bp.bigwig`
+- `results/align/bamCoverage/<Sampe Name>-input.realn.mdup.MQ30.norm.100bp.bigwig`
+- `results/align/bamCoverage/<Sampe Name>-capture.realn.mdup.MQ30.norm.100bp.bigwig`
+
 normalized BigWig files: 
-`results/align/RGT_peakCall/<Sampe Name>-capture.realn.mdup.MQ30.run_signal.bw`
+- `results/align/RGT_peakCall/<Sampe Name>-capture.realn.mdup.MQ30.run_signal.bw`
+
 called peaks: 
-`results/align/RGT_peakCall/<Sampe Name>-capture.realn.mdup.MQ30.run_peaks.merge.bed`
+- `results/align/RGT_peakCall/<Sampe Name>-capture.realn.mdup.MQ30.run_peaks.merge.bed`
