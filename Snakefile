@@ -292,7 +292,7 @@ rule telseq:
 rule MQ30_n_blacklist_filter:
     input:
         bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
-        blacklist = "/labs/barthel/references/CHM13v2/T2T.excluderanges.noTelo.bed"
+        blacklist = "data/T2T.excluderanges.noTelo.bed"
     output:
         filtered_bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam",
         filtered_bai ="results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam.bai"
