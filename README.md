@@ -114,6 +114,16 @@ Choose from 1, 2 [1]: 2
 cluster_name []: 
 ```
 
+## Configure `scripts/primary_peak_call.py`
+
+In lines 20-22, make sure the name of Genome data exists in `~/rgtdata` and is [configured](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) 
+```
+20 # You must complete the Configuration of Genomic Data in your first time of running
+21 # Please check: https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html
+22 g = GenomeData('CHM13v2')
+                   ^^^^^^^
+```
+
 ## Prepare the `fastqList.txt` File
 Create a tab-separated file named fastqList.txt with the following format:
 - Sample Name: Must include either `-input` or `-capture`.
@@ -154,3 +164,19 @@ normalized BigWig files:
 
 called peaks: 
 - `results/align/RGT_peakCall/<Sampe Name>-capture.realn.mdup.MQ30.run_peaks.merge.bed`
+ 
+# FAQ
+
+**Q: No peaks are called in `results/align/RGT_peakCall/`.**
+
+A: This issue occurs when one of the input files during read normalization, either `input.bam` or `capture.bam`, is missing due to a timeout.
+
+Verify that the following files exist:
+- `results/align/UmiDeDup/<Sample Name>-input.realn.mdup.MQ30.bam`
+- `results/align/UmiDeDup/<Sample Name>-capture.realn.mdup.MQ30.bam`
+
+Remove the `results/align/RGT_peakCall/` directory, and re-run the pipeline using the command:
+```
+sh snakemake-run.sh
+```
+
