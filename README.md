@@ -1,7 +1,4 @@
-# Telomere-C
-Telomere interaction analysis
-![Workflow](dag.svg)
----
+# Telomere-C ver 1.0
 
 # Introduction
 
@@ -22,6 +19,10 @@ The workflow is managed by Snakemake to ensure reproducible and scalable data an
 **5. Reads Normalization**. Aligned reads are normalized using the Signal Extraction Scaling (SES) method and adjusted for GC-content using functions provided by the [Regulatory Genomics Toolbox](https://reg-gen.readthedocs.io/en/latest/).
 
 **6. Peak Calling**. For peak calling, a binomial distribution is applied to identify regions of significant enrichment. Candidate peaks are filtered based on p-value and dynamic coverage threshold.
+
+# Graphic workflow of Telomere-C
+![Workflow](dag.svg)
+---
 
 # Prerequisites
 
