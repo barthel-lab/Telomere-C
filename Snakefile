@@ -1,6 +1,6 @@
 # Configure
 # Reference genome (Make sure coresponding index files are in the same director)
-ref_fasta="/labs/barthel/references/CHM13v2/chm13v2.0.fasta"
+ref_fasta="/tgen_labs/barthel/references/CHM13v2/chm13v2.0.fasta"
 
 # Define sample names
 import pandas as pd
@@ -21,7 +21,6 @@ rule ExtractUmis:
     message:
         "Extracting Umi information from fastq"
     shell:"""
-             module add umi_tools/1.1.1
              umi_tools extract -I {input.R1} --bc-pattern="^(?P<umi_1>.{{5}})(?P<discard_1>.{{2}}).*" \
              --read2-in={input.R2} \
              --stdout={output.f1} --read2-out={output.f2} \
