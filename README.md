@@ -37,7 +37,7 @@ bash Mambaforge-Linux-x86_64.sh
 
 **Build and activate environment**
 ```
-mamba create -c conda-forge -c bioconda -n snakemake snakemake python=3.9
+mamba create -c conda-forge -c bioconda -n snakemake snakemake python=3.1
 conda activate snakemake
 ```
 
@@ -49,7 +49,7 @@ conda activate snakemake
 pip install cython numpy scipy
 pip install RGT
 ```
-Please refer [Configuration of Genomic Data](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) to configure Genomic Data in the home directory. python > 3.9 is recommend.
+Please refer [Configuration of Genomic Data](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) to configure Genomic Data in the home directory. python = 3.1 is recommend.
 
 ## Other packages
 Telomere-C required bellowing packages and suggested versions:
@@ -64,7 +64,7 @@ Telomere-C required bellowing packages and suggested versions:
 |bedtools|2.30.0|https://bedtools.readthedocs.io/en/latest/|
 |macs2|2.2.7.1|https://hbctraining.github.io/Intro-to-ChIPseq/lessons/05_peak_calling_macs.html|
 |deepTools|3.5.4|https://test-argparse-readoc.readthedocs.io/en/latest/index.html|
-|fastqQC|0.12.0|https://www.bioinformatics.babraham.ac.uk/projects/fastqc/|
+|fastQC|0.12.0|https://www.bioinformatics.babraham.ac.uk/projects/fastqc/|
 |umi_tools|1.1.1|https://umi-tools.readthedocs.io/en/latest/QUICK_START.html|
 
 ## Indexes
