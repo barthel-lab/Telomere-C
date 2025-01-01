@@ -56,8 +56,6 @@ rule fq2ubam:
     message:
         "Converting FASTQ file to uBAM format\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-    conda:
-        "envs/gatk4.yaml"
     shell:"""gatk --java-options -Xmx6g FastqToSam \
             --FASTQ {input.R1} \
             --FASTQ2 {input.R2} \
@@ -81,8 +79,6 @@ rule markadapters:
     message:
         "Adding XT tags. This marks Illumina Adapters and allows them to be removed in later steps\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-    conda:
-        "envs/gatk4.yaml"
     shell:
         """gatk --java-options -Xmx6g MarkIlluminaAdapters \
             --INPUT {input} \
@@ -106,8 +102,6 @@ rule fastqc:
     message:
         "Running FASTQC (pre-clipping)\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-    conda:
-        "envs/fastqc.yaml"
     shell:
         "fastqc \
             --extract \
@@ -136,8 +130,6 @@ rule samtofastq_bwa_mergebamalignment:
         "adapters. The output is then piped to BWA-MEM and aligned. Aligned reads are merged "
         "with the original pre-aligned BAM to preserve original metadata, including read groups.\n"
         "Sample: {wildcards.aliquot_barcode}\n"
-    conda:
-        "envs/bwa.yaml"
     shell:
         """gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.compression_level=1 -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx128m' SamToFastq \
             --INPUT {input.bam} \
@@ -210,8 +202,6 @@ rule alignmetrics:
     message:
         "Computing Alignment Summary Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/gatk4.yaml"
     shell:
         "gatk --java-options -Xmx6g CollectAlignmentSummaryMetrics \
             -R {input.ref} \
@@ -233,8 +223,6 @@ rule multiplemetrics:
     message:
         "Computing Multiple Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/gatk4.yaml"
     shell:
         "gatk --java-options -Xmx6g CollectMultipleMetrics \
             -R {input.ref} \
@@ -256,8 +244,6 @@ rule collectinsertsizemetrics:
     message:
         "Collect Insert Size Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/gatk4.yaml"
     shell:"""
         gatk CollectInsertSizeMetrics \
             -I {input} \
@@ -282,8 +268,6 @@ rule telseq:
     message:
         "Quantification of telomere sequences using TelSeq\n"
         "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/telseq.yaml"
     shell:"""
         telseq -r 151 -k 7 -o {output} {input} \
             > {log} 2>&1"""
@@ -396,8 +380,6 @@ rule wgsmetrics:
     message:
         "Computing WGS Metrics\n"
         "Sample: {wildcards.aliquot_barcode}"
-    conda:
-        "envs/gatk4.yaml"
     shell:
         "gatk --java-options -Xmx6g CollectWgsMetrics \
             -R {input.ref} \

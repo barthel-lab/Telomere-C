@@ -1,4 +1,0 @@
-channels:
- - bioconda
-dependencies:
- - telseq=0.0.2

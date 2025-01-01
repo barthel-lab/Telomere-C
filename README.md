@@ -26,8 +26,8 @@ The workflow is managed by Snakemake to ensure reproducible and scalable data an
 
 # Prerequisites
 
-## Snakemake
-[full install instructions for Snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html). 
+## Snakemake v7.25.0
+[Full install instructions for Snakemake](https://snakemake.readthedocs.io/en/v7.25.0/snakefiles/best_practices.html).
 
 **Quick installation**
 ```
@@ -37,12 +37,12 @@ bash Mambaforge-Linux-x86_64.sh
 
 **Build and activate environment**
 ```
-mamba create -c conda-forge -c bioconda -n snakemake snakemake python=3.1
+conda create -c conda-forge -c bioconda -n snakemake snakemake=7.25.0 python=3.1
 conda activate snakemake
 ```
 
 ## RGT - Regulatory Genomics Toolbox
-[full install instruction of RGT](https://reg-gen.readthedocs.io/en/latest/rgt/installation.html).
+[Full install instruction of RGT](https://reg-gen.readthedocs.io/en/latest/rgt/installation.html).
 
 **Quick installation**
 ```
@@ -94,17 +94,21 @@ ref_fasta="/home/references/CHM13v2/chm13v2.0.fasta"
 ```
 Note: the index files should be in the same directory of reference fasta
 
-## Configure Slurm using Cookiecutter (Only for the first time of running)
+## Configure `slurm_profile` using Cookiecutter (Only for the first time of running)
 We use [cookiecutter](https://github.com/cookiecutter/cookiecutter) to configure slurm for Telomere-C pipeline.
 
 Installation
 ```
-pipx install cookiecutter
+pip install cookiecutter
 ```
 
 Example setting for Slurm:
 ```
-cookiecutter slurm
+cookiecutter cookiecutter_slurm_tempate
+```
+
+And follow the setting below:
+```
 profile_name [slurm]: slurm_profile
 sbatch_defaults []: --nodes=1 --cpus-per-task=8  --time=72:00:00 --mem=12G
 cluster_config []:
@@ -123,6 +127,16 @@ In lines 20-22, make sure the name of Genome data exists in `~/rgtdata` and is [
 21 # Please check: https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html
 22 g = GenomeData('CHM13v2')
                    ^^^^^^^
+```
+
+## Configure `snakemake-run.sh`
+In the line 13, check if the path of `--conda-prefix` is correct. You can use command `conda env list` to find parent directory of current conda enviromnet. 
+
+In this case, `/tgen_labs/barthel/software` is the `--conda-prefix`
+```
+conda env list
+telomereC.py3.1      * /tgen_labs/barthel/software/miniforge3/envs/telomereC.py3.1
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ```
 
 ## Prepare the `fastqList.txt` File

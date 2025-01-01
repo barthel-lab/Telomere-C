@@ -1,7 +1,0 @@
-channels:
- - bioconda
- - r
- - conda-forge
-dependencies:
- - gatk4=4.2.2.0
- - r-base=4.0.5
