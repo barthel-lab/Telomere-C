@@ -26,18 +26,18 @@ The workflow is managed by Snakemake to ensure reproducible and scalable data an
 
 # Prerequisites
 
+## Conda/Miniconda
+[Installing Miniconda
+](https://docs.anaconda.com/miniconda/install/)
+
 ## Snakemake v7.25.0
 [Full install instructions for Snakemake](https://snakemake.readthedocs.io/en/v7.25.0/snakefiles/best_practices.html).
 
-**Quick installation**
-```
-wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
-bash Mambaforge-Linux-x86_64.sh
-```
-
 **Build and activate environment**
 ```
-conda create -c conda-forge -c bioconda -n snakemake snakemake=7.25.0 python=3.1
+conda install -n base -c conda-forge mamba
+conda activate base
+mamba create -c conda-forge -c bioconda -n snakemake snakemake=7.25.0 python=3.11
 conda activate snakemake
 ```
 
@@ -49,7 +49,7 @@ conda activate snakemake
 pip install cython numpy scipy
 pip install RGT
 ```
-Please refer [Configuration of Genomic Data](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) to configure Genomic Data in the home directory. python = 3.1 is recommend.
+Please refer [Configuration of Genomic Data](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) to configure Genomic Data in the home directory. python = 3.11 is recommended.
 
 ## Other packages
 Telomere-C required bellowing packages and suggested versions:
