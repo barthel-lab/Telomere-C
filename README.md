@@ -46,10 +46,33 @@ conda activate snakemake
 
 **Quick installation**
 ```
-pip install cython numpy scipy
+pip install python numpy scipy
 pip install RGT
 ```
-Please refer [Configuration of Genomic Data](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) to configure Genomic Data in the home directory. python = 3.11 is recommended.
+Please refer to [Configuration of Genomic Data](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) to configure Genomic Data in the home directory. python = 3.11 is recommended.
+
+Example setting of for the non-default reference genome.
+
+`~/rgtdata/data.config.user`
+```
+[CHM13v2]
+genome: /tgen_labs/barthel/references/CHM13v2/chm13v2.0.fasta
+chromosome_sizes: /tgen_labs/barthel/references/CHM13v2/chm13v2.0.size.genome
+gene_regions: CHM13v2/CHM13v2.gene_regions.bed
+annotation: CHM13v2/CHM13v2.annotation.gtf
+gene_alias: hg38/alias_human.txt
+```
+- genome: The fasta file of the reference genome.
+- chromosome_sizes: The size of the chromosome in the reference genome, can be acquired from the fasta index.
+- gene_regions: Corrdinate of genes, can be acuqired by acquired by converting the gft file. e.g. `gtf2bed` from `GFFUtils`.
+- annotation: Annotation of reference genome in gft format.
+- gene_alias: Optional for our pipeline. You could assign it from existing gene_alias.
+
+Files in `~/rgtdata/CHM13v2/`
+```
+CHM13v2.annotation.gtf
+CHM13v2.gene_regions.bed
+```
 
 ## Other packages
 Telomere-C required bellowing packages and suggested versions:
@@ -95,28 +118,49 @@ ref_fasta="/home/references/CHM13v2/chm13v2.0.fasta"
 Note: the index files should be in the same directory of reference fasta
 
 ## Configure `slurm_profile` using Cookiecutter (Only for the first time of running)
-We use [cookiecutter](https://github.com/cookiecutter/cookiecutter) to configure slurm for Telomere-C pipeline.
+For Slurm users, we use [cookiecutter](https://github.com/cookiecutter/cookiecutter) to configure Slurm for the Telomere-C pipeline.
 
 Installation
 ```
 pip install cookiecutter
 ```
-
-Example setting for Slurm:
+Remove the `slurm_profile` and build a new one.
 ```
-cookiecutter cookiecutter_slurm_tempate
+rm -rf slurm_profile
+cookiecutter gh:Snakemake-Profiles/slurm
 ```
-
-And follow the setting below:
+Follow the setting below:
 ```
-profile_name [slurm]: slurm_profile
-sbatch_defaults []: --nodes=1 --cpus-per-task=8  --time=72:00:00 --mem=12G
-cluster_config []:
-Select advanced_argument_conversion:
-1 - no
-2 - yes
-Choose from 1, 2 [1]: 2
-cluster_name []: 
+ [1/17] profile_name (slurm): slurm_profile
+ [2/17] Select use_singularity
+ 1 - False
+ 2 - True
+ Choose from [1/2] (1): 
+ [3/17] Select use_conda
+ 1 - False
+ 2 - True
+ Choose from [1/2] (1): 2
+ [4/17] jobs (500): 
+ [5/17] restart_times (0): 3
+ [6/17] max_status_checks_per_second (10): 
+ [7/17] max_jobs_per_second (10): 
+ [8/17] latency_wait (5): 
+ [9/17] Select print_shell_commands
+ 1 - False
+ 2 - True
+ Choose from [1/2] (1): 
+ [10/17] sbatch_defaults (): --nodes=1 --cpus-per-task=8  --time=72:00:00 --mem=12G
+ [11/17] cluster_sidecar_help (Use cluster sidecar. NB! Requires snakemake >= 7.0! Enter to continue...): 
+ [12/17] Select cluster_sidecar
+ 1 - yes
+ 2 - no
+ Choose from [1/2] (1): 
+ [13/17] cluster_name (): 
+ [14/17] cluster_jobname (%r_%w): 
+ [15/17] cluster_logpath (logs/slurm/%r/%j): 
+ [16/17] cluster_config_help (The use of cluster-config is discouraged. Rather, set snakemake CLI options in the 
+profile configuration file (see snakemake documentation on best practices). Enter to continue...): 
+ [17/17] cluster_config (): 
 ```
 
 ## Configure `scripts/primary_peak_call.py`
@@ -126,17 +170,13 @@ In lines 20-22, make sure the name of Genome data exists in `~/rgtdata` and is [
 20 # You must complete the Configuration of Genomic Data in your first time of running
 21 # Please check: https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html
 22 g = GenomeData('CHM13v2')
-                   ^^^^^^^
+ ^^^^^^^
 ```
 
-## Configure `snakemake-run.sh`
-In the line 13, check if the path of `--conda-prefix` is correct. You can use command `conda env list` to find parent directory of current conda enviromnet. 
-
-In this case, `/tgen_labs/barthel/software` is the `--conda-prefix`
+For non-slurm user, uncomment line 16 and comment the line 13
 ```
-conda env list
-telomereC.py3.1      * /tgen_labs/barthel/software/miniforge3/envs/telomereC.py3.1
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+15 # This command DON'T use --profile argument
+16 snakemake --jobs 500 -k --latency-wait 120 --max-jobs-per-second 2 --restart-times 0 --cluster-config "${CLUSTRCONF}" --configfile "${CONFIGFILE}" --jobname "{jobid}.{cluster.name}" all
 ```
 
 ## Prepare the `fastqList.txt` File
