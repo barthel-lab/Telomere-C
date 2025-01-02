@@ -140,7 +140,7 @@ rule samtofastq_bwa_mergebamalignment:
             --NON_PF true \
             --TMP_DIR Temp | \
          bwa mem -M -t {threads} -p {input.ref} /dev/stdin | \
-         gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.use_async_io=true -Dsamjdk.compression_level=1 -XX:+UseStringCache -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx5000m' MergeBamAlignment \
+         gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.use_async_io=true -Dsamjdk.compression_level=1 -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx5000m' MergeBamAlignment \
             --ALIGNED_BAM /dev/stdin \
             --UNMAPPED_BAM {input.bam} \
             --OUTPUT {output.bam} \
@@ -166,8 +166,7 @@ rule UmiReadGroup:
     log:
         "logs/align/UmiReadGroup/{aliquot_barcode}_UMIs.mapped_grouped.log"
     shell:
-        """ module add umi_tools/1.1.1
-            umi_tools group -I {input} --paired --group-out={output.groups} \
+        """ umi_tools group -I {input} --paired --group-out={output.groups} \
             --output-bam -S {output.bam} --umi-group-tag RX > {log} 2>&1
             samtools sort {output.bam} -o {output.sort}
             samtools index {output.sort}"""
@@ -183,8 +182,7 @@ rule UmiDeDup:
     params:
         extra=r"'{aliquot_barcode}'"
     shell:
-        """ module add umi_tools/1.1.1
-            umi_tools dedup -I {input} \
+        """ umi_tools dedup -I {input} \
             --log={output.log} \
             --paired -S {output.dedup} --output-stats={params.extra} > {log} 2>&1"""
 
