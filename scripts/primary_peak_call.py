@@ -38,14 +38,21 @@ cov.norm_gc_content(cov_input.coverage, g.get_genome(), g.get_chromosome_sizes()
 cov.subtract(cov_input)
 
 # 2. Peak Calling (Binomial distribution)
+# This section is modified from https://reg-gen.readthedocs.io/en/latest/rgt/tutorial-peak-calling.html
+# The working assumption is that the reads falling into a bin follow a Binomial distribution
 from numpy import sum, mean
+#s is the total number of mapped reads (after GC normalization, and subtracting the input-DNA data from the IP data)
 s = sum(cov.overall_cov)
+#p is the expected probability of a read landing in a given bin (ignoring bins with zero counts)
 p = mean(cov.overall_cov[cov.overall_cov > 0]) / s
 #pvalue = 1e-32
 pvalue = 1e-24
 print(f"overall s: {s}")
 print(f"overall p: {p}")
 #print(f"overall p value: {pvalue}")
+#Given s and p, we can apply the binomial test to determine whether a particular bin has a higher read count than expected by chance
+#We set a fixed pvalue threshold of 1e-24
+#Using the code below, we determine what bin coverage (cov_threshold) is necessary in order to have a pvalue lower than 1e-24
 i=0
 while True:
   i+=1
@@ -56,6 +63,9 @@ while True:
 
 print(f"new required Rd: {cov_threshold}")
 
+#The above code works in a genome-wide manner, where we use the overall s and p values from the entire genome
+#However, we can calculate chromosome specific bin coverage thresholds
+#For each chromosome, we store the chromosome specific number of mapped reads (s), expected probability of a read landing in a given bin (p) and number of bins with nonzero counts
 chrom_to_s = defaultdict(int)
 chrom_to_ps = defaultdict(int)
 chrom_to_numposcov = defaultdict(int)
@@ -66,6 +76,7 @@ for i, c in enumerate(cov.overall_cov):
     chrom_to_numposcov[chrom] += 1
     chrom_to_ps[chrom] += c
 
+#We calculate the chromosome specific probabilies (p)
 chrom_to_p = {}
 for chrom in chrom_to_s:
   if chrom_to_numposcov[chrom] > 0:
@@ -77,6 +88,9 @@ for chrom in chrom_to_s:
 print(chrom_to_s)
 print(chrom_to_p)
 
+#we calculate the chromosome specific bin coverage/read depth, using the fixed pvalue threshold of 1e-24
+#We can also set a minRd, if we want to ensure a minimum bin coverage (that may be higher than what is necessary to satisfy the pvalue threshold)
+#Setting minRd to 0 ensures we only care about the pvalue threshold
 minRd = 0
 chrom_to_rd = {}
 for chrom in chrom_to_s:
@@ -105,6 +119,7 @@ def filter_peaks(c, empirical_s, empirical_p, pvalue_theshold=pvalue, min_reads=
     p = binomtest(c, empirical_s, empirical_p).pvalue if c > min_reads else 1
     return True if p < pvalue_theshold else False
 
+#This functions returns true as long as the number of reads mapping to a bin is larger than the bin coverage threshold for the corresponding chromosome
 def filter_peaks_cov(c, chrom, chrom_to_rd):
   if chrom not in chrom_to_rd:
     return False
