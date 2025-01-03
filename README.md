@@ -235,3 +235,8 @@ Remove the `results/align/RGT_peakCall/` directory, and re-run the pipeline usin
 sh snakemake-run.sh
 ```
 
+Or remove specific intermediate data. For example:
+```
+rm results/align/RGT_peakCall/intermediate/<Sample Name>*.token
+rm results/align/RGT_peakCall/.<Sample Name>*.token
+```
