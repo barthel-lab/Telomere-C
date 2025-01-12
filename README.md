@@ -1,4 +1,4 @@
-# Telomere-C ver 1.0
+# Telomere-C ver 1.0b (Modified for ChIP-seq, single end)
 
 # Introduction
 
