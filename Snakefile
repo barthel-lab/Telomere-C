@@ -241,10 +241,33 @@ rule MQ30_n_blacklist_filter:
         samtools index {output.filtered_bam}"""
 
 # Analysis method
-# So far, I do macs2 by another script manually. ./scripts/macs2.sh <treated> <input>
-# I keep this rule to make sure the pipeline goes well
+rule callpeaks:
+    input:
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        input = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
+    output:
+        filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",        
+        peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.xls"
+    params:
+        outdir = "results/align/macs2/{aliquot_barcode}/"
+    log:
+        "logs/align/macs2/{aliquot_barcode}.log"
+    benchmark:
+        "benchmarks/align/macs2/{aliquot_barcode}.txt"
+    message:
+        "Calling peaks using MACS2.\n"
+        "Sample: {wildcards.aliquot_barcode}"
+    shell:"""
+         macs2 callpeak \
+            -t {input.bam} \
+            --outdir {params.outdir} \
+            -g hs \
+            -n {wildcards.aliquot_barcode} \
+            -B \
+            -q 0.01 \
+            > {log} 2>&1
+        """
 
-# Analysis method
 rule bamCoverge:
     input:
         "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
@@ -293,6 +316,7 @@ rule wgsmetrics:
 # Define QC output files of workflows
 rule all:
    input:
+        expand("results/align/macs2/{name}/{name}_peaks.xls",name=Sname),
         expand("results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig",aliquot_barcode=Sname),
         expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html",aliquot_barcode=Sname),
         expand("results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt",aliquot_barcode=Sname),
