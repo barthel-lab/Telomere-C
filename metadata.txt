@@ -1,0 +1,17 @@
+# Source
+
+H3K4me3 from ENCODE https://www.encodeproject.org/experiments/ENCSR000DQH/
+ENCFF001ERS.fastq.gz
+ENCFF001ESA.fastq.gz
+
+H3K27me3 from ENCODE https://www.encodeproject.org/experiments/ENCSR000DQG/
+ENCFF001EQX.fastq.gz
+ENCFF001ERF.fastq.gz
+
+H3K36me3 from ENCODE https://www.encodeproject.org/experiments/ENCSR000DQF/
+ENCFF001ERN.fastq.gz
+ENCFF001ERO.fastq.gz
+
+CTCF from ENCODE https://www.encodeproject.org/experiments/ENCSR000DQI/
+ENCFF001GZW.fastq.gz
+ENCFF001GZX.fastq.gz

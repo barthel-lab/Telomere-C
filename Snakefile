@@ -4,46 +4,14 @@ ref_fasta="/tgen_labs/barthel/references/CHM13v2/chm13v2.0.fasta"
 
 # Define sample names
 import pandas as pd
-fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1","R2"])
+fastqls = pd.read_csv("fastqList.txt", sep='\t', header=None, names=["name","R1"])
 fastqls.index = fastqls['name']
 Sname = pd.Series(fastqls['name'])
 
 # Start
-rule ExtractUmis:
-    input:
-        R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1],
-        R2 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][2]
-    output:
-        f1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.1.fastq.gz",
-        f2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.2.fastq.gz"
-    log:
-        "logs/align/ExtractUmis/{aliquot_barcode}.pre.ExtractUmis.R1.log"
-    message:
-        "Extracting Umi information from fastq"
-    shell:"""
-             umi_tools extract -I {input.R1} --bc-pattern="^(?P<umi_1>.{{5}})(?P<discard_1>.{{2}}).*" \
-             --read2-in={input.R2} \
-             --stdout={output.f1} --read2-out={output.f2} \
-             --extract-method=regex > {log} 2>&1
-          """
-
-rule RemoveEmptyReads:
-    input:
-        f1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.1.fastq.gz",
-        f2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_primary_processed.2.fastq.gz"
-    output:
-        R1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.1.fastq.gz",
-        R2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.2.fastq.gz"
-    log:
-        "logs/align/ExtractUmis/{aliquot_barcode}.ExtractUmis.R1.log"
-    shell:"""
-             cutadapt -m 1 -o {output.R1} -p {output.R2} {input.f1} {input.f2};
-          """
-
 rule fq2ubam:
     input:
-        R1 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.1.fastq.gz",
-        R2 = "results/align/ExtractUmis/{aliquot_barcode}/{aliquot_barcode}_processed.2.fastq.gz"
+        R1 = lambda wildcards: fastqls.loc[wildcards.aliquot_barcode][1]
     output:
         "results/align/ubam/{aliquot_barcode}/{aliquot_barcode}.unaligned.bam"
     params:
@@ -58,7 +26,6 @@ rule fq2ubam:
         "Sample: {wildcards.aliquot_barcode}\n"
     shell:"""gatk --java-options -Xmx6g FastqToSam \
             --FASTQ {input.R1} \
-            --FASTQ2 {input.R2} \
             --OUTPUT {output} \
             --SEQUENCING_CENTER \"{params.RGCN}\" \
             --SAMPLE_NAME \"{params.RGSM}\" \
@@ -113,10 +80,15 @@ rule fastqc:
 rule samtofastq_bwa_mergebamalignment:
     input:
         bam = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.markadapters.bam",
-        ref = ref_fasta
+        ref = ref_fasta,
     output:
         bam = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam",
         bai = "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bai"
+    params:
+        fastq = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.SamToFastq.fastq",
+        bwa_aln_sai = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.bwaaln.sai",
+        samse = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.bwaaln.samse.sam",
+        samse_sort = "results/align/markadapters/{aliquot_barcode}/{aliquot_barcode}.bwaaln.samse.sort.bam"
     log: 
         "logs/align/samtofastq_bwa_mergebamalignment/{aliquot_barcode}.log"
     threads: 12
@@ -133,15 +105,16 @@ rule samtofastq_bwa_mergebamalignment:
     shell:
         """gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.compression_level=1 -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx128m' SamToFastq \
             --INPUT {input.bam} \
-            --FASTQ /dev/stdout \
+            --FASTQ {params.fastq} \
             --CLIPPING_ATTRIBUTE XT \
             --CLIPPING_ACTION 2 \
-            --INTERLEAVE true \
             --NON_PF true \
-            --TMP_DIR Temp | \
-         bwa mem -M -t {threads} -p {input.ref} /dev/stdin | \
+            --TMP_DIR Temp;
+         bwa aln -t {threads} {input.ref} {params.fastq} > {params.bwa_aln_sai};
+         bwa samse {input.ref} {params.bwa_aln_sai} {params.fastq} > {params.samse};
+         samtools sort {params.samse} | samtools view -q 1 -F 4 -bh > {params.samse_sort};
          gatk --java-options '-Dsamjdk.buffer_size=131072 -Dsamjdk.use_async_io=true -Dsamjdk.compression_level=1 -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xmx5000m' MergeBamAlignment \
-            --ALIGNED_BAM /dev/stdin \
+            --ALIGNED_BAM {params.samse_sort} \
             --UNMAPPED_BAM {input.bam} \
             --OUTPUT {output.bam} \
             --REFERENCE_SEQUENCE {input.ref} \
@@ -156,40 +129,36 @@ rule samtofastq_bwa_mergebamalignment:
             --TMP_DIR Temp \
             > {log} 2>&1"""
 
-rule UmiReadGroup:
+rule markduplicates:
     input:
-       "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam"
+       "results/align/bwa/{aliquot_barcode}/{aliquot_barcode}.aln.bam"        
     output:
-        bam = "results/align/UmiReadGroup/{aliquot_barcode}_mapped_grouped.bam",
-        groups = "results/align/UmiReadGroup/{aliquot_barcode}_mapped_grouped.txt",
-        sort = "results/align/UmiReadGroup/{aliquot_barcode}_sorted_mapped_grouped.bam"
-    log:
-        "logs/align/UmiReadGroup/{aliquot_barcode}_UMIs.mapped_grouped.log"
-    shell:
-        """ umi_tools group -I {input} --paired --group-out={output.groups} \
-            --output-bam -S {output.bam} --umi-group-tag RX > {log} 2>&1
-            samtools sort {output.bam} -o {output.sort}
-            samtools index {output.sort}"""
-
-rule UmiDeDup:
-    input:
-        "results/align/UmiReadGroup/{aliquot_barcode}_sorted_mapped_grouped.bam"        
-    output:
-        dedup = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
-        log = "results/align/UmiDeDup/{aliquot_barcode}.UmiDeDup.log"
-    log:
-        "logs/align/UmiDeDup/{aliquot_barcode}.UmiDeDup.log"
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        bai = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bai",
+        metrics = "results/align/markduplicates/{aliquot_barcode}.metrics.txt"
     params:
-        extra=r"'{aliquot_barcode}'"
+        max_records = 6000000
+    log:
+        "logs/align/markduplicates/{aliquot_barcode}.log"
+    benchmark:
+        "benchmarks/align/markduplicates/{aliquot_barcode}.txt"
+    message:
+        "Readgroup-specific BAM files are combined into a single BAM."
+        "Potential PCR duplicates are marked.\n"
+        "Sample: {wildcards.aliquot_barcode}"
     shell:
-        """ umi_tools dedup -I {input} \
-            --log={output.log} \
-            --paired -S {output.dedup} --output-stats={params.extra} > {log} 2>&1"""
-
+        """gatk --java-options -Xmx6g MarkDuplicates \
+            --INPUT {input} \
+            --OUTPUT {output.bam} \
+            --METRICS_FILE {output.metrics} \
+            --CREATE_INDEX true \
+            --TMP_DIR Temp \
+            --MAX_RECORDS_IN_RAM {params.max_records} \
+            > {log} 2>&1"""
 # QC
 rule alignmetrics:
     input:
-        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
         ref = ref_fasta 
     output:
         "results/align/alignmetrics/{aliquot_barcode}.AlignMetrics.txt"
@@ -210,7 +179,7 @@ rule alignmetrics:
 # QC
 rule multiplemetrics:
     input:
-        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
         ref = ref_fasta
     output:
         "results/align/multiplemetrics/{aliquot_barcode}.alignment_summary_metrics"
@@ -231,7 +200,7 @@ rule multiplemetrics:
 # QC
 rule collectinsertsizemetrics:
     input:
-        "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam"
+        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam"
     output:
         txt = "results/align/insertmetrics/{aliquot_barcode}.insertmetrics.txt",
         pdf = "results/align/insertmetrics/{aliquot_barcode}.insertmetrics.pdf"
@@ -254,29 +223,14 @@ rule collectinsertsizemetrics:
             --METRIC_ACCUMULATION_LEVEL READ_GROUP \
             2> {log}"""
 
-rule telseq:
-    input:
-        "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam"
-    output:
-        "results/align/telseq/{aliquot_barcode}.telseq.txt"
-    log:
-        "logs/align/telseq/{aliquot_barcode}.log"
-    benchmark:
-        "benchmarks/align/telseq/{aliquot_barcode}.txt"
-    message:
-        "Quantification of telomere sequences using TelSeq\n"
-        "Sample: {wildcards.aliquot_barcode}"
-    shell:"""
-        telseq -r 151 -k 7 -o {output} {input} \
-            > {log} 2>&1"""
 
 rule MQ30_n_blacklist_filter:
     input:
-        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.bam",
-        blacklist = "data/T2T.excluderanges.noTelo.bed"
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.bam",
+        blacklist = "/tgen_labs/barthel/references/CHM13v2/T2T.excluderanges.noTelo.bed"
     output:
-        filtered_bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam",
-        filtered_bai ="results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam.bai"
+        filtered_bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        filtered_bai ="results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam.bai"
     log:
         "logs/align/MQ30/{aliquot_barcode}.log"
     message:
@@ -287,63 +241,13 @@ rule MQ30_n_blacklist_filter:
         samtools index {output.filtered_bam}"""
 
 # Analysis method
-# RGT_peak caller. This rule takes capture.bam and input.bam as input; output peak.merge.bed and BigWig. 
-# To match the number of wildcard in the Snamake workflow, I assign {output.token} as the output, which is a empty file. The expected outputs were written in the Shell scripts. The other token "token_file={params.outdir}/.${{prefix}}.job.token" in the this rule is to prevent overwrite from capture.bam (or inpuat.bam), which have done the job by their partner.
-rule callpeaks:
-    input:
-        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam"
-    output:
-        token = "results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token"
-    params:
-        outdir = "results/align/RGT_peakCall/",
-        peak_caller="scripts/primary_peak_call.py"
-    log:
-        "logs/align/RGT_peakCall/{aliquot_barcode}.log"
-    benchmark:
-        "benchmarks/align/RGT_peakCall/{aliquot_barcode}.txt"
-    threads: 2
-    resources:
-         mem_mb=32768
-    message:
-        "Calling peaks using RGT_peakCall.\n"
-    shell:"""
-    # Initiate I/O
-    input_bam="$(basename {input.bam})"
-    prefix="${{input_bam%%-*}}"
-    capture="results/align/UmiDeDup/${{prefix}}-capture.realn.mdup.MQ30.bam"
-    input="results/align/UmiDeDup/${{prefix}}-input.realn.mdup.MQ30.bam"
-    pri_peak_name=$(basename $capture | sed s/.bam/.run_peaks.bed/g)
-    trim_bed_name=$(echo $pri_peak_name | sed s/.bed/.trim.bed/g)
-    merge_bed_name=$(echo $pri_peak_name | sed s/.bed/.merge.bed/g)
-   
-    # This token is to prevent overwriting by either input.bam or capture.bam 
-    token_file={params.outdir}/.${{prefix}}.job.token
-    echo 1 >> $token_file
-    stat=$(awk '{{sum += $1}}END{{print sum}}' $token_file)
-
-    # Check if both capture and input are True, and the peak calling havn't not been performed yet)
-    if [[ -f "$capture" && -f "$input" && $(echo "$stat") -lt 2 ]]; then
-      # Primary peak calling and output BigWig
-      echo "Processing primary peak calling"
-      python {params.peak_caller} $capture $input
-
-      # Peak trimming and output merge.bed
-      echo "Outputing run_peak.merge.bed"
-      awk '{{if ($2<$3 && $1 != "chrM") print $0}}' {params.outdir}/${{pri_peak_name}} | sort -k1,1 -k2,2n > {params.outdir}/${{trim_bed_name}}
-      bedtools merge -d 100 -i  {params.outdir}/${{trim_bed_name}} | awk '{{print $1"\t"$2"\t"$3"\t"$1":"$2"-"$3}}' > {params.outdir}/${{merge_bed_name}}
-     
-      # Move intermediate file
-      mv {params.outdir}/${{pri_peak_name}} {params.outdir}/${{trim_bed_name}} {params.outdir}/intermediate/
-   fi
-
-    # When job is done, give a token
-    touch {output.token}
-   """
+# So far, I do macs2 by another script manually. ./scripts/macs2.sh <treated> <input>
+# I keep this rule to make sure the pipeline goes well
 
 # Analysis method
 rule bamCoverge:
     input:
-        "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam"
+        "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
     output:
         "results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig"
     params:
@@ -367,7 +271,7 @@ rule bamCoverge:
 # QC
 rule wgsmetrics:
     input:
-        bam = "results/align/UmiDeDup/{aliquot_barcode}.realn.mdup.MQ30.bam",
+        bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
         ref = ref_fasta 
     output:
         "results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt"
@@ -389,8 +293,6 @@ rule wgsmetrics:
 # Define QC output files of workflows
 rule all:
    input:
-        expand("results/align/RGT_peakCall/intermediate/{aliquot_barcode}.RGT_peak_called.token",aliquot_barcode=Sname),
-        expand("results/align/telseq/{name}.telseq.txt",name=Sname),
         expand("results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig",aliquot_barcode=Sname),
         expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html",aliquot_barcode=Sname),
         expand("results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt",aliquot_barcode=Sname),
