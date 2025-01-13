@@ -246,8 +246,8 @@ rule callpeaks:
         bam = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam",
         input = "results/align/markduplicates/{aliquot_barcode}.realn.mdup.MQ30.bam"
     output:
-        filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}.realn.mdup.MQ30.bam",        
-        peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.xls"
+        filtered_bam = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_treat_pileup.bdg",
+        peaks = "results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.narrowPeak"
     params:
         outdir = "results/align/macs2/{aliquot_barcode}/"
     log:
@@ -316,7 +316,7 @@ rule wgsmetrics:
 # Define QC output files of workflows
 rule all:
    input:
-        expand("results/align/macs2/{name}/{name}_peaks.xls",name=Sname),
+        expand("results/align/macs2/{aliquot_barcode}/{aliquot_barcode}_peaks.narrowPeak",aliquot_barcode=Sname),
         expand("results/align/bamCoverage/{aliquot_barcode}.realn.mdup.MQ30.norm.100bp.bigwig",aliquot_barcode=Sname),
         expand("results/align/fastqc_preclip/{aliquot_barcode}/{aliquot_barcode}.unaligned_fastqc.html",aliquot_barcode=Sname),
         expand("results/align/wgsmetrics/{aliquot_barcode}.WgsMetrics.txt",aliquot_barcode=Sname),

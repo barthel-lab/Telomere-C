@@ -8,20 +8,18 @@ The workflow is managed by Snakemake to ensure reproducible and scalable data an
 
 ## Key Workflow Steps
 
-**1. UMI Extraction**. Raw sequencing data is processed to extract UMI information within the reads. UMIs are critical for identifying and removing duplicate reads.
+**1. Adapter Marking**. Illumina adapter sequences are marked to enable their removal during alignment, preserving the integrity of the sequence data.
 
-**2. Adapter Marking**. Illumina adapter sequences are marked to enable their removal during alignment, preserving the integrity of the sequence data.
+**2. BWA Alignment**. Processed reads are aligned to a reference genome using `BWA-MEM`. The pipeline merges the aligned reads with metadata from the pre-alignment steps.
 
-**3. BWA Alignment**. Processed reads are aligned to a reference genome using BWA-MEM. The pipeline merges the aligned reads with metadata from the pre-alignment steps.
+**3. Deduplication**. Duplicated reads are marked by GATK's `MarkDuplicates` to eliminate PCR artifacts, ensuring that only unique reads are retained for analysis.
 
-**4. UMI Grouping and Deduplication**. Reads are grouped by UMI and deduplicated to eliminate PCR artifacts, ensuring that only unique reads are retained for analysis.
+**4. Reads Normalization**. Aligned reads are normalized using deepTools's `bamCoverage` with RPKM method, bin = 100 bp. 
 
-**5. Reads Normalization**. Aligned reads are normalized using the Signal Extraction Scaling (SES) method and adjusted for GC-content using functions provided by the [Regulatory Genomics Toolbox](https://reg-gen.readthedocs.io/en/latest/).
-
-**6. Peak Calling**. For peak calling, a binomial distribution is applied to identify regions of significant enrichment. Candidate peaks are filtered based on p-value and dynamic coverage threshold.
+**5. Peak Calling**. For peak calling, `mcas2 callpeak` is applied to identify regions of significant peaks with cutoff `-q 0.01`.
 
 # Graphic workflow of Telomere-C
-![Workflow](dag.svg)
+![Workflow](dag.rule.pdf)
 ---
 
 # Prerequisites
@@ -41,39 +39,6 @@ mamba create -c conda-forge -c bioconda -n snakemake snakemake=7.25.0 python=3.1
 conda activate snakemake
 ```
 
-## RGT - Regulatory Genomics Toolbox
-[Full install instruction of RGT](https://reg-gen.readthedocs.io/en/latest/rgt/installation.html).
-
-**Quick installation**
-```
-pip install python numpy scipy
-pip install RGT
-```
-Please refer to [Configuration of Genomic Data](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) to configure Genomic Data in the home directory. python = 3.11 is recommended.
-
-Example setting of for the non-default reference genome.
-
-`~/rgtdata/data.config.user`
-```
-[CHM13v2]
-genome: /tgen_labs/barthel/references/CHM13v2/chm13v2.0.fasta
-chromosome_sizes: /tgen_labs/barthel/references/CHM13v2/chm13v2.0.size.genome
-gene_regions: CHM13v2/CHM13v2.gene_regions.bed
-annotation: CHM13v2/CHM13v2.annotation.gtf
-gene_alias: hg38/alias_human.txt
-```
-- genome: The fasta file of the reference genome.
-- chromosome_sizes: The size of the chromosome in the reference genome, can be acquired from the fasta index.
-- gene_regions: Corrdinate of genes, can be acuqired by acquired by converting the gft file. e.g. `gtf2bed` from `GFFUtils`.
-- annotation: Annotation of reference genome in gft format.
-- gene_alias: Optional for our pipeline. You could assign it from existing gene_alias.
-
-Files in `~/rgtdata/CHM13v2/`
-```
-CHM13v2.annotation.gtf
-CHM13v2.gene_regions.bed
-```
-
 ## Other packages
 Telomere-C required bellowing packages and suggested versions:
 
@@ -83,12 +48,10 @@ Telomere-C required bellowing packages and suggested versions:
 |gatk4|4.2.2.0|https://gatk.broadinstitute.org/hc/en-us/articles/360036194592-Getting-started-with-GATK4|
 |bwa|0.7.17|https://github.com/lh3/bwa|
 |samtools|1.13|http://www.htslib.org/|
-|telseq|0.0.2|https://github.com/zd1/telseq|
 |bedtools|2.30.0|https://bedtools.readthedocs.io/en/latest/|
 |macs2|2.2.7.1|https://hbctraining.github.io/Intro-to-ChIPseq/lessons/05_peak_calling_macs.html|
 |deepTools|3.5.4|https://test-argparse-readoc.readthedocs.io/en/latest/index.html|
 |fastQC|0.12.0|https://www.bioinformatics.babraham.ac.uk/projects/fastqc/|
-|umi_tools|1.1.1|https://umi-tools.readthedocs.io/en/latest/QUICK_START.html|
 
 ## Indexes
 - BWA indexes
@@ -163,16 +126,6 @@ profile configuration file (see snakemake documentation on best practices). Ente
  [17/17] cluster_config (): 
 ```
 
-## Configure `scripts/primary_peak_call.py`
-
-In lines 20-22, make sure the name of Genome data exists in `~/rgtdata` and is [configured](https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html) 
-```
-20 # You must complete the Configuration of Genomic Data in your first time of running
-21 # Please check: https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html
-22 g = GenomeData('CHM13v2')
- ^^^^^^^
-```
-
 For non-slurm user, uncomment line 16 and comment the line 13
 ```
 15 # This command DON'T use --profile argument
@@ -181,14 +134,13 @@ For non-slurm user, uncomment line 16 and comment the line 13
 
 ## Prepare the `fastqList.txt` File
 Create a tab-separated file named fastqList.txt with the following format:
-- Sample Name: Must include either `-input` or `-capture`.
+- Sample Name: Sample name
 - PATH1: Provide the full paths to the Fastq files for read1.
-- PATH2: Provide the full paths to the Fastq files for read2.
 
 Example:
 ```
-Cell-input   /home/fastq/Cell-input.R1.fastq   /home/fastq/Cell-input.R2.fastq  
-Cell-capture   /home/fastq/Cell-capture.R1.fastq   /home/fastq/Cell-capture.R2.fastq  
+Cell-rep1   /home/fastq/Cell-rep1.fastq
+Cell-rep2   /home/fastq/Cell-rep2.fastq
 ```
 
 # Quick Start
@@ -203,40 +155,17 @@ sh snakemake-run.sh
 ```
 
 # Output files
-All Output files were stored in the subdirectory of `results/alig/`
+All Output files were stored in the subdirectory of `results/align/`
 
 ## Main outputs
 deduplicated BAM: 
-- `results/align/UmiDeDup/<Sampe Name>-input.realn.mdup.MQ30.bam`
-- `results/align/UmiDeDup/<Sampe Name>-capture.realn.mdup.MQ30.bam`
+- `results/align/markduplicates/<Sampe Name>-rep1.realn.mdup.MQ30.bam`
+- `results/align/markduplicates/<Sampe Name>-rep2.realn.mdup.MQ30.bam`
 
-unnormalized BigWig:
-- `results/align/bamCoverage/<Sampe Name>-input.realn.mdup.MQ30.norm.100bp.bigwig`
-- `results/align/bamCoverage/<Sampe Name>-capture.realn.mdup.MQ30.norm.100bp.bigwig`
-
-normalized BigWig files: 
-- `results/align/RGT_peakCall/<Sampe Name>-capture.realn.mdup.MQ30.run_signal.bw`
+normalized BigWig:
+- `results/align/bamCoverage/<Sampe Name>-rep1.realn.mdup.MQ30.norm.100bp.bigwig`
+- `results/align/bamCoverage/<Sampe Name>-rep2.realn.mdup.MQ30.norm.100bp.bigwig`
 
 called peaks: 
-- `results/align/RGT_peakCall/<Sampe Name>-capture.realn.mdup.MQ30.run_peaks.merge.bed`
- 
-# FAQ
-
-**Q: No peaks are called in `results/align/RGT_peakCall/`.**
-
-A: This issue occurs when one of the input files during read normalization, either `input.bam` or `capture.bam`, is missing due to a timeout.
-
-Verify that the following files exist:
-- `results/align/UmiDeDup/<Sample Name>-input.realn.mdup.MQ30.bam`
-- `results/align/UmiDeDup/<Sample Name>-capture.realn.mdup.MQ30.bam`
-
-Remove the `results/align/RGT_peakCall/` directory, and re-run the pipeline using the command:
-```
-sh snakemake-run.sh
-```
-
-Or remove specific intermediate data. For example:
-```
-rm results/align/RGT_peakCall/intermediate/<Sample Name>*.token
-rm results/align/RGT_peakCall/.<Sample Name>*.token
-```
+- `results/align/macs2/<Sampe Name>/<Sampe Name>-rep1_peaks.narrowPeak`
+- `results/align/macs2/<Sampe Name>/<Sampe Name>-rep2_peaks.narrowPeak`
