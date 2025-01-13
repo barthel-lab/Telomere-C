@@ -19,7 +19,7 @@ The workflow is managed by Snakemake to ensure reproducible and scalable data an
 **5. Peak Calling**. For peak calling, `mcas2 callpeak` is applied to identify regions of significant peaks with cutoff `-q 0.01`.
 
 # Graphic workflow of Telomere-C
-![Workflow](dag.rule.pdf)
+![Workflow](dag.svg)
 ---
 
 # Prerequisites
