@@ -303,7 +303,7 @@ rule callpeaks:
         "benchmarks/align/RGT_peakCall/{aliquot_barcode}.txt"
     threads: 2
     resources:
-         mem_mb=32768
+         mem_mb=131702
     message:
         "Calling peaks using RGT_peakCall.\n"
     shell:"""
