@@ -30,12 +30,16 @@ ext, _ = get_extension_size(bamfile, start=0, end=300, stepsize=5)
 cov = CoverageSet('IP coverage', regionset)
 cov_input = CoverageSet('input-dna coverage', regionset)
 
-cov.coverage_from_bam(bam_file=bamfile, extension_size=ext, binsize=200, stepsize=100)
-cov_input.coverage_from_bam(bam_file=bamfile_input, extension_size=0, binsize=200, stepsize=100)
+cov.coverage_from_bam(bam_file=bamfile, extension_size=ext, binsize=500, stepsize=300)
+cov_input.coverage_from_bam(bam_file=bamfile_input, extension_size=0, binsize=500, stepsize=300)
 
 # Normalize against the GC-content followed by subtracting the input-DNA data from the IP data
 cov.norm_gc_content(cov_input.coverage, g.get_genome(), g.get_chromosome_sizes())
 cov.subtract(cov_input)
+
+# Normalize to read depth
+factor = 1000000 / float(cov.reads)
+cov.coverage = np.array(cov.coverage,dtype=object) * factor
 
 # 2. Peak Calling (Binomial distribution)
 # This section is modified from https://reg-gen.readthedocs.io/en/latest/rgt/tutorial-peak-calling.html
