@@ -1,0 +1,21 @@
+# Recommand absolute path
+#configfile: "/scratch/ychen/Telomere-C/config/config.yaml"
+#configfile: "/scratch/ychen/Telomere-C/config/config.yaml"
+configfile: "/scratch/ychen/Telomere-C/config/config.test.yaml"
+
+
+include: "rules/common.smk"
+include: "rules/telomereC.smk"
+
+rule all:
+    input:        
+        expand("results/fastqc_preclip/{sample}/{sample}-{enrich}.unaligned_fastqc.html",sample=samples, enrich=['input','capture']),
+        expand("results/alignmetrics/{sample}-{enrich}.AlignMetrics.txt",sample=samples, enrich=['input','capture']),
+        expand("results/multiplemetrics/{sample}-{enrich}.alignment_summary_metrics",sample=samples, enrich=['input','capture']),
+        expand("results/insertmetrics/{sample}-{enrich}.insertmetrics.txt",sample=samples, enrich=['input','capture']),
+        expand("results/insertmetrics/{sample}-{enrich}.insertmetrics.pdf",sample=samples, enrich=['input','capture']),
+        expand("results/telseq/{sample}-{enrich}.telseq.txt",sample=samples, enrich=['input','capture']),      
+        expand("results/UmiDeDup/{sample}-{enrich}.realn.mdup.MQ30.bam", sample=samples, enrich=['input','capture']),
+        expand("results/bamCoverage/{sample}-{enrich}.realn.mdup.MQ30.norm.100bp.bigwig",sample=samples, enrich=['input','capture']),
+        expand("results/wgsmetrics/{sample}-{enrich}.WgsMetrics.txt",sample=samples, enrich=['input','capture']),
+        #expand("results/ExtractUmis/{sample}/{sample}-{enrich}_primary_processed.{R}.fastq.gz",sample=samples,enrich=['input','capture'],R=[1,2])

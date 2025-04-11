@@ -8,4 +8,11 @@ data/ref/*.dict
 data/fastq/*.fastq.gz
 temp/**
 Temp
+.DS_Store
+temp/
+*.log
+.Rhistory
+.snakemake/
+results/
+slurm-*.out
 
