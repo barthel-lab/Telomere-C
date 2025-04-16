@@ -153,7 +153,7 @@ rule UmiReadGroup:
 
 rule UmiDeDup:
     input:
-        "results/UmiReadGroup/{sample}-{enrich}_mapped_grouped.bam"        
+        "results/UmiReadGroup/{sample}-{enrich}_sorted_mapped_grouped.bam"        
     output:
         dedup = "results/UmiDeDup/{sample}-{enrich}.realn.mdup.bam",
         log = "results/UmiDeDup/{sample}-{enrich}.UmiDeDup.log"
@@ -186,6 +186,7 @@ rule alignmetrics:
             -O {output} \
             --METRIC_ACCUMULATION_LEVEL READ_GROUP
         """
+
 # QC
 rule multiplemetrics:
     input:
@@ -202,9 +203,10 @@ rule multiplemetrics:
         gatk --java-options -Xmx6g CollectMultipleMetrics \
             -R {input.ref} \
             -I {input.bam} \
-            -O results/align/multiplemetrics/{wildcards.sample} \
+            -O results/multiplemetrics/{wildcards.sample}-{wildcards.enrich} \
             --METRIC_ACCUMULATION_LEVEL READ_GROUP
         """
+
 # QC
 rule collectinsertsizemetrics:
     input:
@@ -258,6 +260,7 @@ rule MQ30_n_blacklist_filter:
         samtools view -b -q 30 > {output.filtered_bam}; \
         samtools index {output.filtered_bam}
         """
+
 # Analysis method
 rule bamCoverge:
     input:
@@ -307,12 +310,12 @@ rule callpeaks1:
     input:
         expand("results/UmiDeDup/{{sample}}-{enrich}.realn.mdup.MQ30.bam",sample=samples, enrich=['input','capture'])
     output:
-        bw = "results/RGT_peakCall/{sample}/{sample}.normal.run_signal.bw",
-        bed = temp("results/RGT_peakCall/{sample}/{sample}.normal.run_peaks.bed")
+        bw = "results/RGT_peakCall/{sample}-capture.realn.mdup.MQ30.run_signal.bw",
+        bed = temp("results/RGT_peakCall/{sample}-capture.realn.mdup.MQ30.run_peaks.bed")
     params:
-        bam1 = "results/UmiDeDup/{{sample}}-capture.realn.mdup.MQ30.bam",
-        bam2 = "results/UmiDeDup/{{sample}}-input.realn.mdup.MQ30.bam",
-        peak_caller = "scripts/primary_peak_call.py"
+        bam1 = "results/UmiDeDup/{sample}-capture.realn.mdup.MQ30.bam",
+        bam2 = "results/UmiDeDup/{sample}-input.realn.mdup.MQ30.bam",
+        peak_caller = "workflow/scripts/primary_peak_call.py"
     threads: 4
     resources:
          mem_mb=204800
@@ -324,19 +327,19 @@ rule callpeaks1:
     python {params.peak_caller} {params.bam1} {params.bam2}
     """
 
-rule callpeaks2::
+rule callpeaks2:
     input:
-        "results/RGT_peakCall/{sample}/{sample}.normal.run_peaks.bed"
+        "results/RGT_peakCall/{sample}-capture.realn.mdup.MQ30.run_peaks.bed"
     output:
-        trim = temp("results/RGT_peakCall/{sample}/{sample}.normal.run_peaks.trim.bed"),
-        merge = "results/RGT_peakCall/{sample}/{sample}.normal.run_peaks.merge.bed"
+        trim = temp("results/RGT_peakCall/{sample}-capture.realn.mdup.MQ30.run_peaks.trim.bed"),
+        merge = "results/RGT_peakCall/{sample}-capture.realn.mdup.MQ30.run_peaks.merge.bed"
     message:
         "Merge called peaks if they are close\n"
     params:
         distance = 100
     conda:
         "telomereC.py3.1" 
-shell:"""
-    awk '{{if ($2<$3 && $1 != "chrM") print $0}}' {input} | sort -k1,1 -k2,2n > {output.trim}
-    bedtools merge -d 100 -i  {output.trim} | awk '{{print $1"\t"$2"\t"$3"\t"$1":"$2"-"$3}}' > {params.merge}
-    """
+    shell:"""
+        awk '{{if ($2<$3 && $1 != "chrM") print $0}}' {input} | sort -k1,1 -k2,2n > {output.trim}
+        bedtools merge -d 100 -i  {output.trim} | awk '{{print $1"\t"$2"\t"$3"\t"$1":"$2"-"$3}}' > {output.merge}
+        """

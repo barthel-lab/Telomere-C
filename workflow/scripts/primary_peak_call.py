@@ -8,14 +8,18 @@ import sys
 import os
 from collections import defaultdict
 from scipy.stats import binomtest
+import numpy as np
+
 # 0. Configure
 # I/O 
 bamfile = sys.argv[1]
 bamfile_input = sys.argv[2]
-outdir = 'results/align/RGT_peakCall/'
+outdir = 'results/RGT_peakCall/'
 outtxt = outdir + os.path.basename(bamfile).replace('.bam','.run_peaks.bed')
 outbw =  outdir + os.path.basename(bamfile).replace('.bam','.run_signal.bw')
 #os.mkdir(outdir)
+print(f"output bed: {outtxt}")
+print(f"output bw: {outbw}")
 
 # You must complete the Configuration of Genomic Data in your first time of running
 # Please check: https://reg-gen.readthedocs.io/en/latest/rgt/setup_data.html
