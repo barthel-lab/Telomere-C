@@ -190,4 +190,4 @@ called peaks:
 
 **IGV screenshot**
 
-![IGV preview](Telomere-C_igv_snapshot.svg)
+![IGV preview](Telomere-C_igv_snapshot.png)
